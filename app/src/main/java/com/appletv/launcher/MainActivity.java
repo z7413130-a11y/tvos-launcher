@@ -104,9 +104,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
     private int currentAmbientColor = 0xFF14101A;
 
-    // Режим покачивания и сортировки плиток (tvOS Jiggle Mode)
+    // Режим сортировки в стиле tvOS
     private boolean isJiggleMode = false;
-    private int currentJigglePosition = -1;
+    private boolean isDraggingItem = false;
+    private int currentGrabbedPosition = -1;
     private long jiggleModeStartTime = 0L;
 
     public static class AppItem {
@@ -535,22 +536,43 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         runOnUiThread(this::loadApps);
     }
 
-    // --- УПРАВЛЕНИЕ РЕЖИМОМ СОРТИРОВКИ (JIGGLE MODE) ---
+    // --- УПРАВЛЕНИЕ РЕЖИМОМ СОРТИРОВКИ (TVOS JIGGLE MODE) ---
 
-    private void startJiggleMode(int position) {
+    // 1. Включаем общее покачивание всех иконок
+    private void startJiggleMode() {
         if (isJiggleMode) return;
         isJiggleMode = true;
-        currentJigglePosition = position;
+        isDraggingItem = false;
+        currentGrabbedPosition = -1;
         jiggleModeStartTime = SystemClock.uptimeMillis();
 
-        heroTitle.setText("Перемещение: [◀ ▶] двигать, [Назад] готово");
+        heroTitle.setText("Редактирование: выберите иконку и нажмите [ОК]");
         dockAdapter.notifyDataSetChanged();
     }
 
+    // 2. Берем конкретную иконку в руку для сдвига
+    private void grabItem(int position) {
+        if (position < 0 || position >= homeApps.size() - 1) return;
+        isDraggingItem = true;
+        currentGrabbedPosition = position;
+        heroTitle.setText("Перемещение: [◀ ▶] двигать, [ОК] закрепить");
+        dockAdapter.notifyDataSetChanged();
+    }
+
+    // 3. Отпускаем иконку на новое место (но остаемся в режиме покачивания)
+    private void releaseGrabbedItem() {
+        isDraggingItem = false;
+        currentGrabbedPosition = -1;
+        heroTitle.setText("Редактирование: выберите иконку и нажмите [ОК]");
+        dockAdapter.notifyDataSetChanged();
+    }
+
+    // 4. Полный выход из режима редактирования с сохранением порядка
     private void stopJiggleMode() {
         if (!isJiggleMode) return;
         isJiggleMode = false;
-        currentJigglePosition = -1;
+        isDraggingItem = false;
+        currentGrabbedPosition = -1;
 
         List<String> order = new ArrayList<>();
         for (AppItem item : homeApps) {
@@ -562,7 +584,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         heroTitle.setText("Apple TV");
         dockAdapter.notifyDataSetChanged();
-        Toast.makeText(this, "Порядок сохранён", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Порядок ярлыков сохранён", Toast.LENGTH_SHORT).show();
     }
 
     private void moveItem(int fromPosition, int toPosition) {
@@ -571,7 +593,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         Collections.swap(homeApps, fromPosition, toPosition);
         dockAdapter.notifyItemMoved(fromPosition, toPosition);
-        currentJigglePosition = toPosition;
+        currentGrabbedPosition = toPosition;
 
         dockRecycler.post(() -> {
             View view = dockRecycler.getLayoutManager().findViewByPosition(toPosition);
@@ -591,20 +613,27 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
 
         if (isJiggleMode) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                moveItem(currentJigglePosition, currentJigglePosition - 1);
-                return true;
-            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                moveItem(currentJigglePosition, currentJigglePosition + 1);
-                return true;
-            } else if (keyCode == KeyEvent.KEYCODE_BACK) {
-                stopJiggleMode();
-                return true;
-            } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
-                if (SystemClock.uptimeMillis() - jiggleModeStartTime > 600L) {
-                    stopJiggleMode();
+            if (isDraggingItem) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    moveItem(currentGrabbedPosition, currentGrabbedPosition - 1);
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    moveItem(currentGrabbedPosition, currentGrabbedPosition + 1);
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                    if (SystemClock.uptimeMillis() - jiggleModeStartTime > 300L) {
+                        releaseGrabbedItem();
+                    }
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    releaseGrabbedItem();
+                    return true;
                 }
-                return true;
+            } else {
+                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    stopJiggleMode();
+                    return true;
+                }
             }
         }
 
@@ -788,8 +817,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     String choice = options.get(which);
                     if (choice.equals("Переместить на экране (Jiggle Mode)")) {
                         int index = homeApps.indexOf(item);
+                        startJiggleMode();
                         if (index != -1) {
-                            startJiggleMode(index);
+                            grabItem(index);
                         }
                     } else if (choice.equals("Убрать с главного экрана")) {
                         List<String> order = loadPinnedOrder();
@@ -982,6 +1012,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = homeApps.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
+            int pos = holder.getBindingAdapterPosition();
 
             int targetW = getCardWidth();
             int targetH = getCardHeight();
@@ -1007,6 +1038,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
             normalBg.setCornerRadius(dpToPx(18));
+
+            boolean isThisItemGrabbed = (isDraggingItem && pos == currentGrabbedPosition);
+            if (isThisItemGrabbed) {
+                normalBg.setStroke(dpToPx(4), Color.parseColor("#FFCC00"));
+            }
             card.setBackground(normalBg);
 
             // Анимация покачивания (Jiggle Effect)
@@ -1032,11 +1068,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    currentJigglePosition = holder.getBindingAdapterPosition();
-                    animateScale(v, 1.15f, 1.15f, dpToPx(12));
+                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.15f, isThisItemGrabbed ? 1.22f : 1.15f, dpToPx(12));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-                    focusBg.setStroke(dpToPx(3), isJiggleMode ? Color.parseColor("#FFCC00") : Color.WHITE);
+                    
+                    int strokeColor = isThisItemGrabbed ? Color.parseColor("#FFCC00") : (isJiggleMode ? Color.parseColor("#34C759") : Color.WHITE);
+                    focusBg.setStroke(dpToPx(isThisItemGrabbed ? 4 : 3), strokeColor);
                     v.setBackground(focusBg);
 
                     if (!isJiggleMode) {
@@ -1053,12 +1090,19 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnClickListener(v -> {
                 resetScreensaverTimer();
                 if (isJiggleMode) {
-                    if (SystemClock.uptimeMillis() - jiggleModeStartTime < 600L) {
+                    if (SystemClock.uptimeMillis() - jiggleModeStartTime < 300L) {
                         return;
                     }
-                    stopJiggleMode();
+                    if (item.isActionAllApps) return;
+
+                    if (isDraggingItem) {
+                        releaseGrabbedItem();
+                    } else {
+                        grabItem(pos);
+                    }
                     return;
                 }
+
                 if (item.isActionAllApps) {
                     openDrawer();
                 } else {
@@ -1073,7 +1117,8 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 resetScreensaverTimer();
                 if (item.isActionAllApps) return true;
 
-                startJiggleMode(holder.getBindingAdapterPosition());
+                startJiggleMode();
+                grabItem(pos);
                 return true;
             });
         }
