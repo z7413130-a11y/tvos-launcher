@@ -30,6 +30,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
@@ -328,44 +329,37 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
-        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
         itemTiles.setOnClickListener(v -> openTilesManager());
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
-        // 2. Эмбиент
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
         itemAmbient.setOnClickListener(v -> showAmbientPickerTvos());
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
-        // 3. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
         itemSize.setOnClickListener(v -> showTileSizePickerTvos());
         setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
-        // 4. Часы
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
         itemClock.setOnClickListener(v -> showClockPickerTvos());
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и дата", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
-        // 5. Заставка
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
         itemSaver.setOnClickListener(v -> showScreensaverPickerTvos());
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
-        // 6. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
         itemAutostart.setOnClickListener(v -> showAutostartPickerTvos());
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
-        // 7. Сброс
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
@@ -375,7 +369,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
-        // 8. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
@@ -385,7 +378,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
-        // 9. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
@@ -538,7 +530,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
     // --- УПРАВЛЕНИЕ РЕЖИМОМ СОРТИРОВКИ (TVOS JIGGLE MODE) ---
 
-    // 1. Включаем общее покачивание всех иконок
     private void startJiggleMode() {
         if (isJiggleMode) return;
         isJiggleMode = true;
@@ -550,7 +541,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         dockAdapter.notifyDataSetChanged();
     }
 
-    // 2. Берем конкретную иконку в руку для сдвига
     private void grabItem(int position) {
         if (position < 0 || position >= homeApps.size() - 1) return;
         isDraggingItem = true;
@@ -559,7 +549,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         dockAdapter.notifyDataSetChanged();
     }
 
-    // 3. Отпускаем иконку на новое место (но остаемся в режиме покачивания)
     private void releaseGrabbedItem() {
         isDraggingItem = false;
         currentGrabbedPosition = -1;
@@ -567,7 +556,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         dockAdapter.notifyDataSetChanged();
     }
 
-    // 4. Полный выход из режима редактирования с сохранением порядка
     private void stopJiggleMode() {
         if (!isJiggleMode) return;
         isJiggleMode = false;
@@ -959,7 +947,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK ---
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (3D Parallax Tilt & Glass Shimmer) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -986,6 +974,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setFocusable(true);
             card.setClickable(true);
 
+            // Аппаратное скругление 18dp
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -994,16 +983,29 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             });
             card.setClipToOutline(true);
 
+            // Иконка
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
 
+            // Текст для кнопки "Все приложения"
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(14);
             tv.setTypeface(null, android.graphics.Typeface.BOLD);
             tv.setGravity(Gravity.CENTER);
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            // Слой стеклянного блика tvOS Glass Shimmer
+            View shimmer = new View(parent.getContext());
+            GradientDrawable shimmerGrad = new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    new int[]{0x4DFFFFFF, 0x1AFFFFFF, 0x00FFFFFF}
+            );
+            shimmerGrad.setCornerRadius(dpToPx(18));
+            shimmer.setBackground(shimmerGrad);
+            shimmer.setAlpha(0f);
+            card.addView(shimmer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             return new RecyclerView.ViewHolder(card) {};
         }
@@ -1025,6 +1027,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             ImageView iv = (ImageView) card.getChildAt(0);
             TextView tv = (TextView) card.getChildAt(1);
+            View shimmer = card.getChildAt(2);
 
             if (item.isActionAllApps) {
                 iv.setVisibility(View.GONE);
@@ -1068,10 +1071,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.15f, isThisItemGrabbed ? 1.22f : 1.15f, dpToPx(12));
+                    currentGrabbedPosition = holder.getBindingAdapterPosition();
+                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.15f, isThisItemGrabbed ? 1.22f : 1.15f, dpToPx(14));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-                    
+
                     int strokeColor = isThisItemGrabbed ? Color.parseColor("#FFCC00") : (isJiggleMode ? Color.parseColor("#34C759") : Color.WHITE);
                     focusBg.setStroke(dpToPx(isThisItemGrabbed ? 4 : 3), strokeColor);
                     v.setBackground(focusBg);
@@ -1081,7 +1085,19 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     }
                     heroBanner.setImageResource(item.bannerRes);
                     animateAmbientGlow(item.glowColor);
+
+                    // 1. Анимация стеклянного блика tvOS Glass Shimmer
+                    shimmer.setAlpha(0f);
+                    shimmer.animate().alpha(1f).setDuration(240).withEndAction(() -> {
+                        shimmer.animate().alpha(0.35f).setDuration(400).start();
+                    }).start();
+
+                    // 2. 3D Parallax Tilt эффект (многослойный наклон карточки и иконки)
+                    startParallaxTilt(v, iv);
+
                 } else {
+                    stopParallaxTilt(v, iv);
+                    shimmer.animate().alpha(0f).setDuration(200).start();
                     animateScale(v, 1.0f, 1.0f, 0f);
                     v.setBackground(normalBg);
                 }
@@ -1127,6 +1143,42 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public int getItemCount() {
             return homeApps.size();
         }
+    }
+
+    // --- 3D PARALLAX & TILT ЭФФЕКТ ДЛЯ КАРТОЧЕК ---
+    private void startParallaxTilt(View card, View innerIcon) {
+        ObjectAnimator tiltX = ObjectAnimator.ofFloat(card, "rotationX", -1.8f, 1.8f);
+        tiltX.setDuration(1600);
+        tiltX.setRepeatMode(ValueAnimator.REVERSE);
+        tiltX.setRepeatCount(ValueAnimator.INFINITE);
+        tiltX.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        ObjectAnimator tiltY = ObjectAnimator.ofFloat(card, "rotationY", 2.2f, -2.2f);
+        tiltY.setDuration(2200);
+        tiltY.setRepeatMode(ValueAnimator.REVERSE);
+        tiltY.setRepeatCount(ValueAnimator.INFINITE);
+        tiltY.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        ObjectAnimator iconShiftX = ObjectAnimator.ofFloat(innerIcon, "translationX", -2.5f, 2.5f);
+        iconShiftX.setDuration(1600);
+        iconShiftX.setRepeatMode(ValueAnimator.REVERSE);
+        iconShiftX.setRepeatCount(ValueAnimator.INFINITE);
+        iconShiftX.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(tiltX, tiltY, iconShiftX);
+        card.setTag(R.id.ambient_glow, set);
+        set.start();
+    }
+
+    private void stopParallaxTilt(View card, View innerIcon) {
+        AnimatorSet set = (AnimatorSet) card.getTag(R.id.ambient_glow);
+        if (set != null) {
+            set.cancel();
+            card.setTag(R.id.ambient_glow, null);
+        }
+        card.animate().rotationX(0f).rotationY(0f).setDuration(200).start();
+        innerIcon.animate().translationX(0f).translationY(0f).setDuration(200).start();
     }
 
     // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ ---
