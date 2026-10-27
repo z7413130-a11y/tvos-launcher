@@ -14,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -170,6 +171,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         heroBanner = findViewById(R.id.hero_banner);
         ambientGlow = findViewById(R.id.ambient_glow);
         heroTitle = findViewById(R.id.hero_title);
+        
+        // Кинематографичный шрифт SF Pro для заголовка приложения
+        heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+        heroTitle.setLetterSpacing(-0.03f);
+
         homeContentContainer = findViewById(R.id.home_content_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
@@ -1013,7 +1019,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK ---
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (Squircle 18dp, без белой рамки, парящая тень) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -1040,6 +1046,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setFocusable(true);
             card.setClickable(true);
 
+            // Мягкое скругление 18dp (tvOS Squircle)
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -1048,10 +1055,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             });
             card.setClipToOutline(true);
 
+            // Иконка
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
 
+            // Текст для кнопки "Все приложения"
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(14);
@@ -1059,6 +1068,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tv.setGravity(Gravity.CENTER);
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+            // Слой стеклянного блика tvOS Glass Shimmer
             View shimmer = new View(parent.getContext());
             GradientDrawable shimmerGrad = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
@@ -1134,12 +1144,15 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 if (hasFocus) {
                     soundManager.playFocus();
                     currentGrabbedPosition = holder.getBindingAdapterPosition();
-                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.15f, isThisItemGrabbed ? 1.22f : 1.15f, dpToPx(14));
+                    
+                    // Увеличение scale(1.12f) + парящая тень (elevation 16dp) без белой рамки
+                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.12f, isThisItemGrabbed ? 1.22f : 1.12f, dpToPx(16));
+                    
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-
-                    int strokeColor = isThisItemGrabbed ? Color.parseColor("#FFCC00") : (isJiggleMode ? Color.parseColor("#34C759") : Color.WHITE);
-                    focusBg.setStroke(dpToPx(isThisItemGrabbed ? 4 : 3), strokeColor);
+                    if (isThisItemGrabbed) {
+                        focusBg.setStroke(dpToPx(4), Color.parseColor("#FFCC00"));
+                    }
                     v.setBackground(focusBg);
 
                     if (!isJiggleMode) {
@@ -1296,7 +1309,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     animateScale(v, 1.12f, 1.12f, dpToPx(10));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-                    focusBg.setStroke(dpToPx(3), Color.WHITE);
                     v.setBackground(focusBg);
 
                     heroBanner.setImageResource(item.bannerRes);
