@@ -1,3 +1,4 @@
+$(cat << 'INNER_EOF'
 package com.appletv.launcher;
 
 import android.animation.ArgbEvaluator;
@@ -22,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -106,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     // Режим покачивания и сортировки плиток (tvOS Jiggle Mode)
     private boolean isJiggleMode = false;
     private int currentJigglePosition = -1;
+    private long jiggleModeStartTime = 0L;
 
     public static class AppItem {
         public String packageName;
@@ -539,7 +542,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         if (isJiggleMode) return;
         isJiggleMode = true;
         currentJigglePosition = position;
-        heroTitle.setText("Перемещение: [◀ ▶] двигать, [OK] готово");
+        jiggleModeStartTime = SystemClock.uptimeMillis();
+
+        heroTitle.setText("Перемещение: [◀ ▶] двигать, [Назад] готово");
         dockAdapter.notifyDataSetChanged();
     }
 
@@ -548,6 +553,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         isJiggleMode = false;
         currentJigglePosition = -1;
 
+        // Сохраняем обновленный порядок в SharedPreferences
         List<String> order = new ArrayList<>();
         for (AppItem item : homeApps) {
             if (!item.isActionAllApps) {
@@ -562,7 +568,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void moveItem(int fromPosition, int toPosition) {
-        int maxIndex = homeApps.size() - 2;
+        int maxIndex = homeApps.size() - 2; // исключаем последнюю плитку "Все приложения"
         if (toPosition < 0 || toPosition > maxIndex || fromPosition == toPosition) return;
 
         Collections.swap(homeApps, fromPosition, toPosition);
@@ -586,6 +592,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
+        // Если активен Jiggle Mode
         if (isJiggleMode) {
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 moveItem(currentJigglePosition, currentJigglePosition - 1);
@@ -593,9 +600,26 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 moveItem(currentJigglePosition, currentJigglePosition + 1);
                 return true;
-            } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_BACK) {
+            } else if (keyCode == KeyEvent.KEYCODE_BACK) {
                 stopJiggleMode();
                 return true;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (SystemClock.uptimeMillis() - jiggleModeStartTime > 600L) {
+                    stopJiggleMode();
+                }
+                return true;
+            }
+        }
+
+        // Кнопка "Меню" (с тремя полосками) на пульте открывает контекстное меню приложения
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            View focused = getCurrentFocus();
+            if (focused != null && focused.getParent() == dockRecycler) {
+                int pos = dockRecycler.getChildAdapterPosition(focused);
+                if (pos >= 0 && pos < homeApps.size()) {
+                    showAppContextMenu(homeApps.get(pos), false);
+                    return true;
+                }
             }
         }
 
@@ -1033,6 +1057,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnClickListener(v -> {
                 resetScreensaverTimer();
                 if (isJiggleMode) {
+                    if (SystemClock.uptimeMillis() - jiggleModeStartTime < 600L) {
+                        return;
+                    }
                     stopJiggleMode();
                     return;
                 }
@@ -1050,6 +1077,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 resetScreensaverTimer();
                 if (item.isActionAllApps) return true;
 
+                // Зажатие кнопки пульта на 0.7 сек включает Jiggle Mode
                 startJiggleMode(holder.getBindingAdapterPosition());
                 return true;
             });
@@ -1371,3 +1399,5 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         set.start();
     }
 }
+INNER_EOF
+)
