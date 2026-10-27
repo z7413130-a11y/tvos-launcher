@@ -587,20 +587,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
-        // Блокировка утечки фокуса влево/вправо в левой колонке настроек
-        if (settingsOverlay.getVisibility() == View.VISIBLE) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                return true;
-            }
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                closeSettings();
-                return true;
-            }
-        }
-
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (tilesManagerOverlay.getVisibility() == View.VISIBLE) {
                 closeTilesManager();
+                return true;
+            }
+            if (settingsOverlay.getVisibility() == View.VISIBLE) {
+                closeSettings();
                 return true;
             }
             if (appDrawerOverlay.getVisibility() == View.VISIBLE) {
