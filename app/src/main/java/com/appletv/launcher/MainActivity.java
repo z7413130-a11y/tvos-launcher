@@ -18,7 +18,12 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -74,6 +79,22 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout settingsOverlay;
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
+
+    // Центр управления tvOS
+    private FrameLayout controlCenterOverlay;
+    private LinearLayout controlCenterPanel;
+    private TextView ccTimeDisplay;
+    private TextView ccWifiName;
+    private TextView ccWifiStatus;
+    private TextView ccVolumeLevel;
+    private TextView ccVolIcon;
+    private TextView ccSleepTimerVal;
+    private AudioManager audioManager;
+    private int sleepTimerMinutes = 0;
+    private final Handler sleepTimerHandler = new Handler(Looper.getMainLooper());
+    private Runnable sleepTimerRunnable;
+    private long backButtonDownTime = 0L;
+    private boolean isBackLongPressed = false;
 
     // Заставка Screensaver
     private FrameLayout screensaverOverlay;
@@ -166,6 +187,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         prefs = getSharedPreferences("tvos_launcher_prefs", Context.MODE_PRIVATE);
         PackageReceiver.listener = this;
         soundManager = SoundManager.getInstance(this);
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         heroBanner = findViewById(R.id.hero_banner);
         ambientGlow = findViewById(R.id.ambient_glow);
@@ -182,6 +204,16 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         settingsOverlay = findViewById(R.id.settings_overlay);
         tilesManagerOverlay = findViewById(R.id.tiles_manager_overlay);
         tilesManagerRecycler = findViewById(R.id.tiles_manager_recycler);
+
+        // Центр управления
+        controlCenterOverlay = findViewById(R.id.control_center_overlay);
+        controlCenterPanel = findViewById(R.id.control_center_panel);
+        ccTimeDisplay = findViewById(R.id.cc_time_display);
+        ccWifiName = findViewById(R.id.cc_wifi_name);
+        ccWifiStatus = findViewById(R.id.cc_wifi_status);
+        ccVolumeLevel = findViewById(R.id.cc_volume_level);
+        ccVolIcon = findViewById(R.id.cc_vol_icon);
+        ccSleepTimerVal = findViewById(R.id.cc_sleeptimer_val);
 
         screensaverOverlay = findViewById(R.id.screensaver_overlay);
         screensaverBg = findViewById(R.id.screensaver_bg);
@@ -212,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         tilesManagerRecycler.setAdapter(tilesAdapter);
 
         initSettingsListeners();
+        initControlCenterListeners();
         updateDateAndClockUi();
         applyPreferencesUi();
         setupScreensaverTimer();
@@ -275,6 +308,169 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         } else {
             tvAutostartVal.setText(prefs.getString("autostart_label", "Приложение"));
         }
+    }
+
+    private void initControlCenterListeners() {
+        controlCenterOverlay.setOnClickListener(v -> closeControlCenter());
+
+        FrameLayout cardWifi = findViewById(R.id.cc_card_wifi);
+        cardWifi.setOnClickListener(v -> {
+            soundManager.playClick();
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS));
+            } catch (Exception e) {
+                try {
+                    startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+                } catch (Exception ignored) {}
+            }
+        });
+        setupCcCardFocus(cardWifi);
+
+        FrameLayout cardVol = findViewById(R.id.cc_card_volume);
+        cardVol.setOnClickListener(v -> {
+            soundManager.playClick();
+            if (audioManager != null) {
+                int cur = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                if (cur > 0) {
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+                } else {
+                    int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, max / 2, 0);
+                }
+                updateControlCenterUi();
+            }
+        });
+        setupCcCardFocus(cardVol);
+
+        FrameLayout cardSaver = findViewById(R.id.cc_card_screensaver);
+        cardSaver.setOnClickListener(v -> {
+            soundManager.playClick();
+            closeControlCenter();
+            openScreensaver();
+        });
+        setupCcCardFocus(cardSaver);
+
+        FrameLayout cardTimer = findViewById(R.id.cc_card_sleeptimer);
+        cardTimer.setOnClickListener(v -> {
+            soundManager.playClick();
+            cycleSleepTimer();
+        });
+        setupCcCardFocus(cardTimer);
+
+        FrameLayout cardPower = findViewById(R.id.cc_card_power);
+        cardPower.setOnClickListener(v -> {
+            soundManager.playClick();
+            openScreensaver();
+            closeControlCenter();
+        });
+        setupCcCardFocus(cardPower);
+    }
+
+    private void setupCcCardFocus(View card) {
+        card.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                soundManager.playFocus();
+                animateScale(v, 1.03f, 1.03f, dpToPx(6));
+            } else {
+                animateScale(v, 1.0f, 1.0f, 0f);
+            }
+        });
+    }
+
+    private void updateControlCenterUi() {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        ccTimeDisplay.setText(sdf.format(new Date()));
+
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
+            if (netInfo != null && netInfo.isConnected()) {
+                if (netInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                    WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    WifiInfo winfo = wm != null ? wm.getConnectionInfo() : null;
+                    String ssid = (winfo != null && winfo.getSSID() != null) ? winfo.getSSID().replace("\"", "") : "Wi-Fi";
+                    if ("<unknown ssid>".equals(ssid)) ssid = "Wi-Fi Подключено";
+                    ccWifiName.setText(ssid);
+                    ccWifiStatus.setText("Активно");
+                } else if (netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
+                    ccWifiName.setText("Ethernet");
+                    ccWifiStatus.setText("Проводное подключение");
+                }
+            } else {
+                ccWifiName.setText("Нет сети");
+                ccWifiStatus.setText("Отключено");
+            }
+        } catch (Exception ignored) {
+            ccWifiName.setText("Wi-Fi сеть");
+            ccWifiStatus.setText("Подключено");
+        }
+
+        if (audioManager != null) {
+            int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            int percent = (int) (((float) current / (float) Math.max(1, max)) * 100);
+            ccVolumeLevel.setText(percent + "%");
+            if (percent == 0) {
+                ccVolIcon.setText("🔇");
+                ccVolumeLevel.setTextColor(0xFFFF3B30);
+            } else {
+                ccVolIcon.setText("🔊");
+                ccVolumeLevel.setTextColor(0xFF34C759);
+            }
+        }
+
+        if (sleepTimerMinutes == 0) {
+            ccSleepTimerVal.setText("Выкл");
+        } else {
+            ccSleepTimerVal.setText(sleepTimerMinutes + " мин");
+        }
+    }
+
+    private void cycleSleepTimer() {
+        if (sleepTimerRunnable != null) {
+            sleepTimerHandler.removeCallbacks(sleepTimerRunnable);
+        }
+
+        if (sleepTimerMinutes == 0) sleepTimerMinutes = 30;
+        else if (sleepTimerMinutes == 30) sleepTimerMinutes = 60;
+        else if (sleepTimerMinutes == 60) sleepTimerMinutes = 90;
+        else sleepTimerMinutes = 0;
+
+        updateControlCenterUi();
+
+        if (sleepTimerMinutes > 0) {
+            Toast.makeText(this, "Таймер сна: заставка через " + sleepTimerMinutes + " мин", Toast.LENGTH_SHORT).show();
+            sleepTimerRunnable = () -> {
+                openScreensaver();
+                sleepTimerMinutes = 0;
+                updateControlCenterUi();
+            };
+            sleepTimerHandler.postDelayed(sleepTimerRunnable, sleepTimerMinutes * 60 * 1000L);
+        } else {
+            Toast.makeText(this, "Таймер сна отключён", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openControlCenter() {
+        if (isJiggleMode) stopJiggleMode();
+        updateControlCenterUi();
+
+        controlCenterOverlay.setVisibility(View.VISIBLE);
+        controlCenterOverlay.setAlpha(0f);
+        controlCenterOverlay.animate().alpha(1f).setDuration(220).start();
+
+        controlCenterPanel.setTranslationX(dpToPx(380));
+        controlCenterPanel.animate().translationX(0f).setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
+
+        findViewById(R.id.cc_card_wifi).requestFocus();
+    }
+
+    private void closeControlCenter() {
+        controlCenterPanel.animate().translationX(dpToPx(380)).setDuration(200).start();
+        controlCenterOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+            controlCenterOverlay.setVisibility(View.GONE);
+            dockRecycler.requestFocus();
+        }).start();
     }
 
     private void checkAutostart() {
@@ -588,6 +784,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         super.onDestroy();
         PackageReceiver.listener = null;
         if (idleRunnable != null) idleHandler.removeCallbacks(idleRunnable);
+        if (sleepTimerRunnable != null) sleepTimerHandler.removeCallbacks(sleepTimerRunnable);
     }
 
     @Override
@@ -672,6 +869,54 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
+        // 1. Управление внутри Центра управления
+        if (controlCenterOverlay.getVisibility() == View.VISIBLE) {
+            View focused = getCurrentFocus();
+            if (focused != null && focused.getId() == R.id.cc_card_volume) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    soundManager.playFocus();
+                    if (audioManager != null) {
+                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0);
+                        updateControlCenterUi();
+                    }
+                    return true;
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    soundManager.playFocus();
+                    if (audioManager != null) {
+                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0);
+                        updateControlCenterUi();
+                    }
+                    return true;
+                }
+            }
+
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                soundManager.playClick();
+                closeControlCenter();
+                return true;
+            }
+        }
+
+        // 2. Отслеживание долгого зажатия кнопки "Назад" (0.85 сек) для вызова Центра управления
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.getRepeatCount() == 0) {
+                backButtonDownTime = SystemClock.uptimeMillis();
+                isBackLongPressed = false;
+            } else if (!isBackLongPressed && (SystemClock.uptimeMillis() - backButtonDownTime >= 850L)) {
+                isBackLongPressed = true;
+                soundManager.playClick();
+                openControlCenter();
+                return true;
+            }
+        }
+
+        // Вызов Центра управления кнопкой ТВ/GUIDE если есть на пульте
+        if (keyCode == KeyEvent.KEYCODE_TV || keyCode == KeyEvent.KEYCODE_GUIDE) {
+            soundManager.playClick();
+            openControlCenter();
+            return true;
+        }
+
         if (isJiggleMode) {
             if (isDraggingItem) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
@@ -709,6 +954,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (isBackLongPressed) {
+                return true;
+            }
             soundManager.playFocus();
             if (tilesManagerOverlay.getVisibility() == View.VISIBLE) {
                 closeTilesManager();
@@ -724,6 +972,15 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && isBackLongPressed) {
+            isBackLongPressed = false;
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
     }
 
     private void setHomeForegroundVisible(boolean visible) {
@@ -1022,7 +1279,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (3D Parallax Tilt & Glass Shimmer + SFX) ---
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -1049,7 +1306,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setFocusable(true);
             card.setClickable(true);
 
-            // Аппаратное скругление 18dp
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -1058,12 +1314,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             });
             card.setClipToOutline(true);
 
-            // Иконка
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
 
-            // Текст для кнопки "Все приложения"
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(14);
@@ -1071,7 +1325,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tv.setGravity(Gravity.CENTER);
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // Слой стеклянного блика tvOS Glass Shimmer
             View shimmer = new View(parent.getContext());
             GradientDrawable shimmerGrad = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
@@ -1123,7 +1376,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
             card.setBackground(normalBg);
 
-            // Анимация покачивания (Jiggle Effect)
             ObjectAnimator jiggleAnim = (ObjectAnimator) card.getTag(R.id.dock_recycler);
             if (isJiggleMode && !item.isActionAllApps) {
                 if (jiggleAnim == null) {
@@ -1162,13 +1414,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     heroBanner.setImageResource(item.bannerRes);
                     animateAmbientGlow(item.glowColor);
 
-                    // 1. Анимация стеклянного блика tvOS Glass Shimmer
                     shimmer.setAlpha(0f);
                     shimmer.animate().alpha(1f).setDuration(240).withEndAction(() -> {
                         shimmer.animate().alpha(0.35f).setDuration(400).start();
                     }).start();
 
-                    // 2. 3D Parallax Tilt эффект
                     startParallaxTilt(v, iv);
 
                 } else {
@@ -1222,7 +1472,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    // --- 3D PARALLAX & TILT ЭФФЕКТ ДЛЯ КАРТОЧЕК ---
     private void startParallaxTilt(View card, View innerIcon) {
         ObjectAnimator tiltX = ObjectAnimator.ofFloat(card, "rotationX", -1.8f, 1.8f);
         tiltX.setDuration(1600);
