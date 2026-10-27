@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -58,15 +59,17 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+    import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,7 +80,7 @@ import java.util.Locale
 data class AppModel(
     val packageName: String,
     val label: String,
-    val icon: Drawable,
+    val icon: ImageBitmap, // Используем нативный ImageBitmap вместо Drawable
     val dominantColor: Color
 )
 
@@ -159,7 +162,7 @@ fun MainLauncherScreen() {
                 .align(Alignment.TopCenter)
         ) {
             Image(
-                painter = rememberDrawablePainter(drawable = context.getDrawable(R.drawable.bg_poster_studio)),
+                painter = painterResource(id = R.drawable.bg_poster_studio),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -421,8 +424,9 @@ fun AppTileCard(
             .focusable(interactionSource = interactionSource),
         contentAlignment = Alignment.Center
     ) {
+        // Нативный вывод Bitmap, избавление от библиотеки Accompanist
         Image(
-            painter = rememberDrawablePainter(drawable = app.icon),
+            bitmap = app.icon,
             contentDescription = app.label,
             modifier = Modifier.size(50.dp),
             contentScale = ContentScale.Fit
@@ -646,6 +650,7 @@ fun SettingsActionRow(
     }
 }
 
+// --- БЕЗОПАСНАЯ ИЗВЛЕЧЕНИЕ ГРАФИКИ БЕЗ ПАДЕНИЙ ---
 private suspend fun scanInstalledApplications(context: Context): List<AppModel> = withContext(Dispatchers.IO) {
     val pm = context.packageManager
     val result = mutableListOf<AppModel>()
@@ -662,29 +667,35 @@ private suspend fun scanInstalledApplications(context: Context): List<AppModel> 
         if (packageName == context.packageName) continue
 
         val label = resolveInfo.loadLabel(pm).toString()
-        val icon = resolveInfo.loadIcon(pm)
-        val dominantColor = extractDominantColor(icon)
-        result.add(AppModel(packageName, label, icon, dominantColor))
+        val iconDrawable = resolveInfo.loadIcon(pm)
+        
+        // Потокобезопасная отрисовка иконки (важно для предотвращения крашей на ТВ)
+        val bitmap = withContext(Dispatchers.Main) {
+            drawableToBitmap(iconDrawable)
+        }
+        val dominantColor = extractDominantColor(bitmap)
+        
+        result.add(AppModel(packageName, label, bitmap.asImageBitmap(), dominantColor))
     }
 
     result.sortedBy { it.label.lowercase(Locale.getDefault()) }
 }
 
-private fun extractDominantColor(drawable: Drawable?): Color {
-    if (drawable == null) return Color(0xFF35445A)
+private fun drawableToBitmap(drawable: Drawable): Bitmap {
+    if (drawable is BitmapDrawable && drawable.bitmap != null) {
+        return drawable.bitmap
+    }
+    val w = drawable.intrinsicWidth.coerceAtLeast(1)
+    val h = drawable.intrinsicHeight.coerceAtLeast(1)
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return bmp
+}
+
+private fun extractDominantColor(bitmap: Bitmap): Color {
     return try {
-        val bitmap = when (drawable) {
-            is BitmapDrawable -> drawable.bitmap
-            else -> {
-                val w = drawable.intrinsicWidth.coerceAtLeast(1)
-                val h = drawable.intrinsicHeight.coerceAtLeast(1)
-                val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                val canvas = android.graphics.Canvas(bmp)
-                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                drawable.draw(canvas)
-                bmp
-            }
-        }
         val scaled = Bitmap.createScaledBitmap(bitmap, 12, 12, false)
         var totalR = 0L
         var totalG = 0L
