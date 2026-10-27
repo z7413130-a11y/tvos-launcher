@@ -7,6 +7,7 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
+    <!-- 1. Фоновый постер Top Shelf / Заставка -->
     <ImageView
         android:id="@+id/hero_banner"
         android:layout_width="match_parent"
@@ -14,18 +15,22 @@
         android:scaleType="centerCrop"
         android:src="@drawable/bg_poster_studio" />
 
+    <!-- 2. Динамический слой эмбиент-подсветки (Ambient Glow) -->
     <View
         android:id="@+id/ambient_glow"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.45" />
 
+    <!-- 3. Градиент глубины tvOS -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/shelf_gradient_overlay" />
 
+    <!-- 4. Верхний бар: Заголовок + Шестеренка + Текстовые часы и Дата -->
     <LinearLayout
+        android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
@@ -68,16 +73,34 @@
                 android:textSize="20sp" />
         </FrameLayout>
 
-        <TextClock
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:format12Hour="h:mm a"
-            android:format24Hour="HH:mm"
-            android:textColor="#EEFFFFFF"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-medium" />
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextClock
+                android:id="@+id/main_text_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm a"
+                android:format24Hour="HH:mm"
+                android:textColor="#EEFFFFFF"
+                android:textSize="19sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/tv_date_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#88FFFFFF"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif" />
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- 5. Нижний стеклянный плавающий Dock -->
     <LinearLayout
         android:id="@+id/dock_layout_wrapper"
         android:layout_width="match_parent"
@@ -126,6 +149,7 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 6. Полноэкранный каталог App Drawer -->
     <FrameLayout
         android:id="@+id/app_drawer_overlay"
         android:layout_width="match_parent"
@@ -175,6 +199,7 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- 7. Панель настроек Apple tvOS (Split-screen Glass Overlay со скроллом) -->
     <FrameLayout
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
@@ -190,130 +215,329 @@
             android:orientation="horizontal"
             android:paddingStart="60dp"
             android:paddingEnd="60dp"
-            android:paddingTop="50dp"
-            android:paddingBottom="50dp">
+            android:paddingTop="46dp"
+            android:paddingBottom="46dp">
 
-            <LinearLayout
-                android:layout_width="440dp"
+            <!-- Левая колонка: Все 10 пунктов настроек -->
+            <ScrollView
+                android:layout_width="450dp"
                 android:layout_height="match_parent"
-                android:orientation="vertical">
+                android:scrollbars="none">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Настройки"
-                    android:textColor="#FFFFFF"
-                    android:textSize="34sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="28dp" />
-
-                <FrameLayout
-                    android:id="@+id/setting_item_tiles"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="10dp"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:background="@drawable/settings_item_selector"
-                    android:paddingHorizontal="20dp">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/tv_setting_tiles_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|start"
-                        android:text="Плитки главного экрана"
+                        android:text="Настройки"
                         android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                        android:textSize="34sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="22dp" />
 
-                    <TextView
-                        android:id="@+id/tv_setting_tiles_arrow"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|end"
-                        android:text="›"
-                        android:textColor="#88FFFFFF"
-                        android:textSize="22sp" />
-                </FrameLayout>
+                    <!-- 1. Плитки главного экрана -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_tiles"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
 
-                <FrameLayout
-                    android:id="@+id/setting_item_reset_order"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="10dp"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:background="@drawable/settings_item_selector"
-                    android:paddingHorizontal="20dp">
+                        <TextView
+                            android:id="@+id/tv_setting_tiles_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Плитки главного экрана"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/tv_setting_reset_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|start"
-                        android:text="Сбросить порядок ярлыков"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-                </FrameLayout>
+                        <TextView
+                            android:id="@+id/tv_setting_tiles_arrow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="›"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="20sp" />
+                    </FrameLayout>
 
-                <FrameLayout
-                    android:id="@+id/setting_item_restore_hidden"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="10dp"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:background="@drawable/settings_item_selector"
-                    android:paddingHorizontal="20dp">
+                    <!-- 2. Внешний вид и обои -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_wallpapers"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
 
-                    <TextView
-                        android:id="@+id/tv_setting_restore_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|start"
-                        android:text="Восстановить скрытые приложения"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-                </FrameLayout>
+                        <TextView
+                            android:id="@+id/tv_setting_wallpapers_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Внешний вид и обои"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
 
-                <FrameLayout
-                    android:id="@+id/setting_item_system"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:background="@drawable/settings_item_selector"
-                    android:paddingHorizontal="20dp">
+                        <TextView
+                            android:id="@+id/tv_setting_wallpapers_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Динамические"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
 
-                    <TextView
-                        android:id="@+id/tv_setting_sys_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|start"
-                        android:text="Параметры Android ТВ"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
+                    <!-- 3. Эмбиент-подсветка -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_ambient"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
 
-                    <TextView
-                        android:id="@+id/tv_setting_sys_arrow"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical|end"
-                        android:text="⚙"
-                        android:textColor="#88FFFFFF"
-                        android:textSize="18sp" />
-                </FrameLayout>
-            </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_setting_ambient_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Эмбиент-подсветка"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
 
+                        <TextView
+                            android:id="@+id/tv_setting_ambient_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Стандарт (45%)"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
+
+                    <!-- 4. Размер плиток -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_tiles_size"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_size_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Размер и масштаб плиток"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_size_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Стандарт tvOS"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
+
+                    <!-- 5. Часы и дата -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_clock"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_clock_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Часы и верхний бар"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_clock_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="24-часа"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
+
+                    <!-- 6. Заставка Aerial -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_screensaver"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_saver_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Заставка и режим сна"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_saver_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Через 5 мин"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
+
+                    <!-- 7. Автозапуск при старте -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_autostart"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_autostart_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Быстрый запуск при старте"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_autostart_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Главный экран"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="14sp" />
+                    </FrameLayout>
+
+                    <!-- 8. Сбросить порядок -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_reset_order"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_reset_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Сбросить порядок ярлыков"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </FrameLayout>
+
+                    <!-- 9. Восстановить скрытые -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_restore_hidden"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_restore_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Восстановить скрытые программы"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </FrameLayout>
+
+                    <!-- 10. Параметры Android TV -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_system"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_sys_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Параметры Android ТВ"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_sys_arrow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="⚙"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="16sp" />
+                    </FrameLayout>
+
+                </LinearLayout>
+            </ScrollView>
+
+            <!-- Правая колонка: интерактивное превью tvOS -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginStart="70dp"
+                android:layout_marginStart="64dp"
                 android:orientation="vertical"
                 android:gravity="center_vertical">
 
@@ -347,7 +571,7 @@
                     android:id="@+id/settings_preview_desc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Выберите раздел для настройки внешнего вида, списка плиток и параметров домашнего экрана."
+                    android:text="Выберите раздел для детальной настройки интерфейса, внешнего вида и эффектов."
                     android:textColor="#99FFFFFF"
                     android:textSize="16sp"
                     android:lineSpacingExtra="4dp" />
@@ -355,6 +579,7 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- 8. Экран управления плитками (Tiles Manager) -->
     <FrameLayout
         android:id="@+id/tiles_manager_overlay"
         android:layout_width="match_parent"
@@ -397,7 +622,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Включайте или отключайте отображение приложений в нижней полке Dock"
+                        android:text="Включайте или отключайте приложения в нижней полке Dock"
                         android:textColor="#88FFFFFF"
                         android:textSize="15sp"
                         android:layout_marginTop="4dp" />
@@ -415,6 +640,58 @@
                 android:id="@+id/tiles_manager_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 9. Полноэкранная заставка Aerial Screensaver -->
+    <FrameLayout
+        android:id="@+id/screensaver_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/screensaver_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_poster_space" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="64dp"
+            android:layout_marginBottom="54dp"
+            android:orientation="vertical">
+
+            <TextClock
+                android:id="@+id/saver_text_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format24Hour="HH:mm"
+                android:format12Hour="h:mm a"
+                android:textColor="#FFFFFF"
+                android:textSize="64sp"
+                android:textStyle="bold"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="4"
+                android:shadowRadius="24" />
+
+            <TextView
+                android:id="@+id/saver_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CCFFFFFF"
+                android:textSize="20sp"
+                android:layout_marginTop="4dp"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="16" />
         </LinearLayout>
     </FrameLayout>
 
