@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private TextView settingsPreviewDesc;
 
     // Значения настроек
+    private TextView tvSoundVal;
     private TextView tvAmbientVal;
     private TextView tvSizeVal;
     private TextView tvClockVal;
@@ -104,6 +105,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private SharedPreferences prefs;
 
     private int currentAmbientColor = 0xFF14101A;
+
+    // Звуковой движок tvOS
+    private SoundManager soundManager;
 
     // Режим сортировки в стиле tvOS
     private boolean isJiggleMode = false;
@@ -161,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         prefs = getSharedPreferences("tvos_launcher_prefs", Context.MODE_PRIVATE);
         PackageReceiver.listener = this;
+        soundManager = SoundManager.getInstance(this);
 
         heroBanner = findViewById(R.id.hero_banner);
         ambientGlow = findViewById(R.id.ambient_glow);
@@ -187,6 +192,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         settingsPreviewTitle = findViewById(R.id.settings_preview_title);
         settingsPreviewDesc = findViewById(R.id.settings_preview_desc);
 
+        tvSoundVal = findViewById(R.id.tv_setting_sound_val);
         tvAmbientVal = findViewById(R.id.tv_setting_ambient_val);
         tvSizeVal = findViewById(R.id.tv_setting_size_val);
         tvClockVal = findViewById(R.id.tv_setting_clock_val);
@@ -242,6 +248,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void applyPreferencesUi() {
+        boolean soundOn = prefs.getBoolean("sfx_enabled", true);
+        tvSoundVal.setText(soundOn ? "Включены" : "Выключены");
+
         int ambientLevel = prefs.getInt("ambient_level", 55);
         if (ambientLevel == 0) {
             tvAmbientVal.setText("Выключена");
@@ -319,9 +328,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void initSettingsListeners() {
-        btnSettings.setOnClickListener(v -> openSettings());
+        btnSettings.setOnClickListener(v -> {
+            soundManager.playClick();
+            openSettings();
+        });
         btnSettings.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
+                soundManager.playFocus();
                 animateScale(v, 1.12f, 1.12f, dpToPx(8));
                 heroTitle.setText("Настройки");
             } else {
@@ -329,59 +342,98 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
+        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
-        itemTiles.setOnClickListener(v -> openTilesManager());
+        itemTiles.setOnClickListener(v -> {
+            soundManager.playClick();
+            openTilesManager();
+        });
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
+        // 2. Звуковые эффекты
+        FrameLayout itemSound = findViewById(R.id.setting_item_sound);
+        TextView tvSound = findViewById(R.id.tv_setting_sound_title);
+        itemSound.setOnClickListener(v -> {
+            soundManager.playClick();
+            showSoundPickerTvos();
+        });
+        setupSettingFocus(itemSound, tvSound, tvSoundVal, "🔊", "Звуки tvOS", "Приятные стеклянные щелчки при листании пультом и мягкий звук открытия программ в стиле Apple TV.");
+
+        // 3. Эмбиент
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
-        itemAmbient.setOnClickListener(v -> showAmbientPickerTvos());
+        itemAmbient.setOnClickListener(v -> {
+            soundManager.playClick();
+            showAmbientPickerTvos();
+        });
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
+        // 4. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
-        itemSize.setOnClickListener(v -> showTileSizePickerTvos());
+        itemSize.setOnClickListener(v -> {
+            soundManager.playClick();
+            showTileSizePickerTvos();
+        });
         setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
+        // 5. Часы
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
-        itemClock.setOnClickListener(v -> showClockPickerTvos());
+        itemClock.setOnClickListener(v -> {
+            soundManager.playClick();
+            showClockPickerTvos();
+        });
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и дата", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
+        // 6. Заставка
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
-        itemSaver.setOnClickListener(v -> showScreensaverPickerTvos());
+        itemSaver.setOnClickListener(v -> {
+            soundManager.playClick();
+            showScreensaverPickerTvos();
+        });
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
+        // 7. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
-        itemAutostart.setOnClickListener(v -> showAutostartPickerTvos());
+        itemAutostart.setOnClickListener(v -> {
+            soundManager.playClick();
+            showAutostartPickerTvos();
+        });
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
+        // 8. Сброс
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
+            soundManager.playClick();
             prefs.edit().remove("pinned_order").apply();
             loadApps();
             Toast.makeText(this, "Порядок ярлыков сброшен", Toast.LENGTH_SHORT).show();
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
+        // 9. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
+            soundManager.playClick();
             prefs.edit().remove("hidden_apps").apply();
             loadApps();
             Toast.makeText(this, "Все скрытые приложения восстановлены", Toast.LENGTH_SHORT).show();
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
+        // 10. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
         itemSys.setOnClickListener(v -> {
+            soundManager.playClick();
             try {
                 startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
             } catch (Exception ignored) {}
@@ -407,6 +459,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         recycler.setLayoutManager(new LinearLayoutManager(this));
 
         PickerAdapter adapter = new PickerAdapter(options, option -> {
+            soundManager.playClick();
             listener.onSelected(option);
             dialog.dismiss();
         });
@@ -419,6 +472,19 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 View first = recycler.getLayoutManager().findViewByPosition(0);
                 if (first != null) first.requestFocus();
             }
+        });
+    }
+
+    private void showSoundPickerTvos() {
+        boolean current = prefs.getBoolean("sfx_enabled", true);
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Включить звуковые эффекты", "true", current));
+        list.add(new PickerOption("Выключить (беззвучный режим)", "false", !current));
+
+        openTvosPickerDialog("Звуки интерфейса tvOS", list, option -> {
+            boolean enabled = Boolean.parseBoolean(option.key);
+            soundManager.setEnabled(enabled, this);
+            applyPreferencesUi();
         });
     }
 
@@ -502,6 +568,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void setupSettingFocus(View item, TextView title, TextView extra, String icon, String header, String desc) {
         item.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
+                soundManager.playFocus();
                 animateScale(v, 1.03f, 1.03f, dpToPx(6));
                 if (title != null) title.setTextColor(Color.BLACK);
                 if (extra != null) extra.setTextColor(0xFF222222);
@@ -537,6 +604,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         currentGrabbedPosition = -1;
         jiggleModeStartTime = SystemClock.uptimeMillis();
 
+        soundManager.playClick();
         heroTitle.setText("Редактирование: выберите иконку и нажмите [ОК]");
         dockAdapter.notifyDataSetChanged();
     }
@@ -545,6 +613,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         if (position < 0 || position >= homeApps.size() - 1) return;
         isDraggingItem = true;
         currentGrabbedPosition = position;
+        soundManager.playClick();
         heroTitle.setText("Перемещение: [◀ ▶] двигать, [ОК] закрепить");
         dockAdapter.notifyDataSetChanged();
     }
@@ -552,6 +621,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void releaseGrabbedItem() {
         isDraggingItem = false;
         currentGrabbedPosition = -1;
+        soundManager.playClick();
         heroTitle.setText("Редактирование: выберите иконку и нажмите [ОК]");
         dockAdapter.notifyDataSetChanged();
     }
@@ -562,6 +632,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         isDraggingItem = false;
         currentGrabbedPosition = -1;
 
+        soundManager.playClick();
         List<String> order = new ArrayList<>();
         for (AppItem item : homeApps) {
             if (!item.isActionAllApps) {
@@ -579,6 +650,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         int maxIndex = homeApps.size() - 2;
         if (toPosition < 0 || toPosition > maxIndex || fromPosition == toPosition) return;
 
+        soundManager.playFocus();
         Collections.swap(homeApps, fromPosition, toPosition);
         dockAdapter.notifyItemMoved(fromPosition, toPosition);
         currentGrabbedPosition = toPosition;
@@ -637,6 +709,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            soundManager.playFocus();
             if (tilesManagerOverlay.getVisibility() == View.VISIBLE) {
                 closeTilesManager();
                 return true;
@@ -789,6 +862,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void showAppContextMenu(AppItem item, boolean fromDrawer) {
         if (item.isActionAllApps) return;
 
+        soundManager.playClick();
         List<String> options = new ArrayList<>();
         if (!fromDrawer) {
             options.add("Переместить на экране (Jiggle Mode)");
@@ -802,6 +876,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                 .setTitle(item.label)
                 .setItems(options.toArray(new CharSequence[0]), (dialog, which) -> {
+                    soundManager.playClick();
                     String choice = options.get(which);
                     if (choice.equals("Переместить на экране (Jiggle Mode)")) {
                         int index = homeApps.indexOf(item);
@@ -947,7 +1022,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (3D Parallax Tilt & Glass Shimmer) ---
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (3D Parallax Tilt & Glass Shimmer + SFX) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -1071,6 +1146,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
+                    soundManager.playFocus();
                     currentGrabbedPosition = holder.getBindingAdapterPosition();
                     animateScale(v, isThisItemGrabbed ? 1.22f : 1.15f, isThisItemGrabbed ? 1.22f : 1.15f, dpToPx(14));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
@@ -1092,7 +1168,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                         shimmer.animate().alpha(0.35f).setDuration(400).start();
                     }).start();
 
-                    // 2. 3D Parallax Tilt эффект (многослойный наклон карточки и иконки)
+                    // 2. 3D Parallax Tilt эффект
                     startParallaxTilt(v, iv);
 
                 } else {
@@ -1119,6 +1195,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     return;
                 }
 
+                soundManager.playClick();
                 if (item.isActionAllApps) {
                     openDrawer();
                 } else {
@@ -1232,6 +1309,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
+                    soundManager.playFocus();
                     animateScale(v, 1.12f, 1.12f, dpToPx(10));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
@@ -1248,6 +1326,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             card.setOnClickListener(v -> {
                 resetScreensaverTimer();
+                soundManager.playClick();
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
@@ -1336,6 +1415,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             row.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
+                    soundManager.playFocus();
                     animateScale(v, 1.02f, 1.02f, dpToPx(6));
                     tv.setTextColor(Color.BLACK);
                     updateBadgeUi(badge, loadPinnedOrder().contains(item.packageName), true);
@@ -1348,6 +1428,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             row.setOnClickListener(v -> {
                 resetScreensaverTimer();
+                soundManager.playClick();
                 List<String> currentPinned = loadPinnedOrder();
                 if (currentPinned.contains(item.packageName)) {
                     currentPinned.remove(item.packageName);
@@ -1456,6 +1537,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             item.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
+                    soundManager.playFocus();
                     animateScale(v, 1.02f, 1.02f, dpToPx(6));
                     title.setTextColor(Color.BLACK);
                     check.setTextColor(0xFF1B7030);
