@@ -1,4 +1,3 @@
-$(cat << 'INNER_EOF'
 package com.appletv.launcher;
 
 import android.animation.ArgbEvaluator;
@@ -553,7 +552,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         isJiggleMode = false;
         currentJigglePosition = -1;
 
-        // Сохраняем обновленный порядок в SharedPreferences
         List<String> order = new ArrayList<>();
         for (AppItem item : homeApps) {
             if (!item.isActionAllApps) {
@@ -568,7 +566,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void moveItem(int fromPosition, int toPosition) {
-        int maxIndex = homeApps.size() - 2; // исключаем последнюю плитку "Все приложения"
+        int maxIndex = homeApps.size() - 2;
         if (toPosition < 0 || toPosition > maxIndex || fromPosition == toPosition) return;
 
         Collections.swap(homeApps, fromPosition, toPosition);
@@ -592,7 +590,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
-        // Если активен Jiggle Mode
         if (isJiggleMode) {
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 moveItem(currentJigglePosition, currentJigglePosition - 1);
@@ -611,7 +608,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         }
 
-        // Кнопка "Меню" (с тремя полосками) на пульте открывает контекстное меню приложения
         if (keyCode == KeyEvent.KEYCODE_MENU) {
             View focused = getCurrentFocus();
             if (focused != null && focused.getParent() == dockRecycler) {
@@ -1077,7 +1073,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 resetScreensaverTimer();
                 if (item.isActionAllApps) return true;
 
-                // Зажатие кнопки пульта на 0.7 сек включает Jiggle Mode
                 startJiggleMode(holder.getBindingAdapterPosition());
                 return true;
             });
@@ -1399,5 +1394,3 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         set.start();
     }
 }
-INNER_EOF
-)
