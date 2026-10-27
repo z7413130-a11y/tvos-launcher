@@ -762,7 +762,7 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 6. КОМПАКТНАЯ КАРТОЧКА ЦЕНТРА УПРАВЛЕНИЯ (ТОЧНАЯ КОПИЯ С ФОТО СПРАВА СБОКУ, РАЗМЕР 360DP) -->
+    <!-- 6. КОМПАКТНАЯ КАРТОЧКА ЦЕНТРА УПРАВЛЕНИЯ (СТРОГО СПРАВА ВВЕРХУ ПОД СТАТУС-БАРОМ) -->
     <FrameLayout
         android:id="@+id/control_center_overlay"
         android:layout_width="match_parent"
@@ -772,14 +772,14 @@
         android:clickable="true"
         android:focusable="true">
 
-        <!-- Правая мини-карточка ширина = 360dp, отступы сверху 64dp, справа 24dp -->
+        <!-- Правая мини-карточка ширина = 360dp, отступ сверху 84dp, справа 24dp (прямо под статуской) -->
         <LinearLayout
             android:id="@+id/control_center_panel"
             android:layout_width="360dp"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_alignParentEnd="true"
-            android:layout_marginTop="64dp"
+            android:layout_marginTop="84dp"
             android:layout_marginEnd="24dp"
             android:background="@drawable/glass_dock_bg"
             android:orientation="vertical"
