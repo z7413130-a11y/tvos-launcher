@@ -81,13 +81,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
-    // Центр управления tvOS (по центру экрана, как на фото)
+    // Центр управления tvOS (по центру экрана)
     private FrameLayout controlCenterOverlay;
     private LinearLayout controlCenterPanel;
     private TextView ccWifiName;
     private TextView ccWifiStatus;
     private TextView ccVolumeLevel;
-    private TextView ccVolIcon;
+    private ImageView ccVolIconImg;
     private TextView ccSleepTimerVal;
     private AudioManager audioManager;
     private int sleepTimerMinutes = 0;
@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         ccWifiName = findViewById(R.id.cc_wifi_name);
         ccWifiStatus = findViewById(R.id.cc_wifi_status);
         ccVolumeLevel = findViewById(R.id.cc_volume_level);
-        ccVolIcon = findViewById(R.id.cc_vol_icon);
+        ccVolIconImg = findViewById(R.id.cc_vol_icon_img);
         ccSleepTimerVal = findViewById(R.id.cc_sleeptimer_val);
 
         screensaverOverlay = findViewById(R.id.screensaver_overlay);
@@ -428,11 +428,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             int percent = (int) (((float) current / (float) Math.max(1, max)) * 100);
             ccVolumeLevel.setText(percent + "%");
             if (percent == 0) {
-                ccVolIcon.setText("🔇");
                 ccVolumeLevel.setTextColor(0xFFFF3B30);
             } else {
-                ccVolIcon.setText("🔊");
-                ccVolumeLevel.setTextColor(0xFF34C759);
+                ccVolumeLevel.setTextColor(0xFFFFFFFF);
             }
         }
 
