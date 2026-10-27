@@ -4,12 +4,14 @@ import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
@@ -20,6 +22,8 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -61,12 +65,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout settingsOverlay;
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
-
-    // tvOS Стеклянный диалог выбора (изолированный модальный экран)
-    private FrameLayout tvosPickerOverlay;
-    private TextView tvosPickerTitle;
-    private RecyclerView tvosPickerRecycler;
-    private PickerAdapter pickerAdapter;
 
     // Заставка Screensaver
     private FrameLayout screensaverOverlay;
@@ -142,9 +140,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         void onSelected(PickerOption option);
     }
 
-    private final List<PickerOption> currentPickerOptions = new ArrayList<>();
-    private OnOptionSelectedListener currentPickerListener;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -168,13 +163,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         settingsOverlay = findViewById(R.id.settings_overlay);
         tilesManagerOverlay = findViewById(R.id.tiles_manager_overlay);
         tilesManagerRecycler = findViewById(R.id.tiles_manager_recycler);
-
-        tvosPickerOverlay = findViewById(R.id.tvos_picker_overlay);
-        tvosPickerTitle = findViewById(R.id.tvos_picker_title);
-        tvosPickerRecycler = findViewById(R.id.tvos_picker_recycler);
-        tvosPickerRecycler.setLayoutManager(new LinearLayoutManager(this));
-        pickerAdapter = new PickerAdapter();
-        tvosPickerRecycler.setAdapter(pickerAdapter);
 
         screensaverOverlay = findViewById(R.id.screensaver_overlay);
         screensaverBg = findViewById(R.id.screensaver_bg);
@@ -237,6 +225,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void applyPreferencesUi() {
+        // 1. Применение обоев
         String wallpaper = prefs.getString("wallpaper_theme", "dynamic");
         switch (wallpaper) {
             case "space":
@@ -260,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 break;
         }
 
+        // 2. Эмбиент подсветка
         int ambientLevel = prefs.getInt("ambient_level", 45);
         if (ambientLevel == 0) {
             tvAmbientVal.setText("Выключена");
@@ -270,14 +260,18 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tvAmbientVal.setText(ambientLevel == 25 ? "Мягкая (25%)" : (ambientLevel == 45 ? "Стандарт (45%)" : "Яркая (75%)"));
         }
 
+        // 3. Размер плиток
         String sizeMode = prefs.getString("tiles_size", "normal");
         tvSizeVal.setText(sizeMode.equals("compact") ? "Компактный" : (sizeMode.equals("large") ? "Крупный" : "Стандарт tvOS"));
 
+        // 4. Часы
         tvClockVal.setText(prefs.getBoolean("clock_24h", true) ? "24-часовой" : "12-часовой (AM/PM)");
 
+        // 5. Заставка
         int saverMinutes = prefs.getInt("screensaver_timeout", 5);
         tvSaverVal.setText(saverMinutes == 0 ? "Отключено" : "Через " + saverMinutes + " мин");
 
+        // 6. Автозапуск
         String autostartPkg = prefs.getString("autostart_package", "none");
         if (autostartPkg.equals("none")) {
             tvAutostartVal.setText("Главный экран");
@@ -427,53 +421,39 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         setupSettingFocus(itemSys, tvSys, arrSys, "⚙", "Android TV", "Переход в стандартные системные параметры телевизора.");
     }
 
-    // --- УПРАВЛЕНИЕ ЗАХВАТОМ ФОКУСА (FOCUS TRAP) ---
+    // --- МОДАЛЬНЫЙ ДИАЛОГ ВЫБОРА tvOS (НАТИВНОЕ ОКНО С ПОЛНОЙ ИЗОЛЯЦИЕЙ ФОКУСА) ---
 
-    private void lockBackgroundFocus(boolean locked) {
-        if (homeContentContainer != null) {
-            homeContentContainer.setDescendantFocusability(
-                    locked ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS
-            );
+    private void openTvosPickerDialog(String title, List<PickerOption> options, OnOptionSelectedListener listener) {
+        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_tvos_picker);
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
         }
-    }
 
-    private void lockSettingsFocus(boolean locked) {
-        if (settingsOverlay != null) {
-            settingsOverlay.setDescendantFocusability(
-                    locked ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : ViewGroup.FOCUS_AFTER_DESCENDANTS
-            );
-        }
-    }
+        TextView tvTitle = dialog.findViewById(R.id.dialog_picker_title);
+        tvTitle.setText(title);
 
-    // --- НАТИВНЫЕ ДИАЛОГИ ВЫБОРА tvOS ---
+        RecyclerView recycler = dialog.findViewById(R.id.dialog_picker_recycler);
+        recycler.setLayoutManager(new LinearLayoutManager(this));
 
-    private void openTvosPicker(String title, List<PickerOption> options, OnOptionSelectedListener listener) {
-        lockSettingsFocus(true);
-        tvosPickerTitle.setText(title);
-        currentPickerOptions.clear();
-        currentPickerOptions.addAll(options);
-        currentPickerListener = listener;
-        pickerAdapter.notifyDataSetChanged();
+        PickerAdapter adapter = new PickerAdapter(options, option -> {
+            listener.onSelected(option);
+            dialog.dismiss();
+        });
+        recycler.setAdapter(adapter);
 
-        tvosPickerOverlay.setVisibility(View.VISIBLE);
-        tvosPickerOverlay.setAlpha(0f);
-        tvosPickerOverlay.animate().alpha(1f).setDuration(200).start();
-
-        tvosPickerRecycler.post(() -> {
-            tvosPickerRecycler.requestFocus();
-            if (pickerAdapter.getItemCount() > 0) {
-                View first = tvosPickerRecycler.getLayoutManager().findViewByPosition(0);
+        dialog.show();
+        recycler.post(() -> {
+            recycler.requestFocus();
+            if (adapter.getItemCount() > 0) {
+                View first = recycler.getLayoutManager().findViewByPosition(0);
                 if (first != null) first.requestFocus();
             }
         });
-    }
-
-    private void closeTvosPicker() {
-        tvosPickerOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
-            tvosPickerOverlay.setVisibility(View.GONE);
-            lockSettingsFocus(false);
-            findViewById(R.id.setting_item_wallpapers).requestFocus();
-        }).start();
     }
 
     private void showWallpaperPickerTvos() {
@@ -485,11 +465,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         list.add(new PickerOption("Океан (Aerial)", "ocean", current.equals("ocean")));
         list.add(new PickerOption("Тёмный графит (Minimal)", "minimal", current.equals("minimal")));
 
-        openTvosPicker("Внешний вид и Обои", list, option -> {
+        openTvosPickerDialog("Внешний вид и Обои", list, option -> {
             prefs.edit().putString("wallpaper_theme", option.key).apply();
             applyPreferencesUi();
             loadApps();
-            closeTvosPicker();
         });
     }
 
@@ -501,10 +480,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         list.add(new PickerOption("Стандартная (45%)", "45", current == 45));
         list.add(new PickerOption("Яркая неоновая (75%)", "75", current == 75));
 
-        openTvosPicker("Эмбиент-подсветка", list, option -> {
+        openTvosPickerDialog("Эмбиент-подсветка", list, option -> {
             prefs.edit().putInt("ambient_level", Integer.parseInt(option.key)).apply();
             applyPreferencesUi();
-            closeTvosPicker();
         });
     }
 
@@ -515,14 +493,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         list.add(new PickerOption("Стандарт tvOS (160dp)", "normal", current.equals("normal")));
         list.add(new PickerOption("Крупный Focus (190dp)", "large", current.equals("large")));
 
-        openTvosPicker("Размер плиток в Dock", list, option -> {
+        openTvosPickerDialog("Размер плиток в Dock", list, option -> {
             prefs.edit().putString("tiles_size", option.key).apply();
             applyPreferencesUi();
 
             dockAdapter = new AppAdapter();
             dockRecycler.setAdapter(dockAdapter);
-
-            closeTvosPicker();
         });
     }
 
@@ -532,11 +508,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         list.add(new PickerOption("24-часовой формат (21:45)", "true", is24));
         list.add(new PickerOption("12-часовой формат (9:45 PM)", "false", !is24));
 
-        openTvosPicker("Формат времени", list, option -> {
+        openTvosPickerDialog("Формат времени", list, option -> {
             prefs.edit().putBoolean("clock_24h", Boolean.parseBoolean(option.key)).apply();
             updateDateAndClockUi();
             applyPreferencesUi();
-            closeTvosPicker();
         });
     }
 
@@ -548,11 +523,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         list.add(new PickerOption("Через 5 минут", "5", current == 5));
         list.add(new PickerOption("Через 10 минут", "10", current == 10));
 
-        openTvosPicker("Заставка и режим сна", list, option -> {
+        openTvosPickerDialog("Заставка и режим сна", list, option -> {
             prefs.edit().putInt("screensaver_timeout", Integer.parseInt(option.key)).apply();
             applyPreferencesUi();
             setupScreensaverTimer();
-            closeTvosPicker();
         });
     }
 
@@ -565,14 +539,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             list.add(new PickerOption(app.label, app.packageName, current.equals(app.packageName)));
         }
 
-        openTvosPicker("Быстрый запуск при включении", list, option -> {
+        openTvosPickerDialog("Быстрый запуск при включении", list, option -> {
             prefs.edit()
                     .putString("autostart_package", option.key)
                     .putString("autostart_label", option.title)
                     .apply();
             applyPreferencesUi();
             Toast.makeText(this, "Автозапуск: " + option.title, Toast.LENGTH_SHORT).show();
-            closeTvosPicker();
         });
     }
 
@@ -614,18 +587,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
-        // Блокировка утечки фокуса D-pad в диалоге выбора
-        if (tvosPickerOverlay.getVisibility() == View.VISIBLE) {
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                return true;
-            }
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                closeTvosPicker();
-                return true;
-            }
-        }
-
-        // Блокировка утечки фокуса в левой колонке настроек
+        // Блокировка утечки фокуса влево/вправо в левой колонке настроек
         if (settingsOverlay.getVisibility() == View.VISIBLE) {
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 return true;
@@ -650,7 +612,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void openDrawer() {
-        lockBackgroundFocus(true);
+        if (homeContentContainer != null) {
+            homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
         appDrawerOverlay.setVisibility(View.VISIBLE);
         appDrawerOverlay.setAlpha(0f);
         appDrawerOverlay.animate().alpha(1f).setDuration(220).start();
@@ -660,13 +624,17 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void closeDrawer() {
         appDrawerOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             appDrawerOverlay.setVisibility(View.GONE);
-            lockBackgroundFocus(false);
+            if (homeContentContainer != null) {
+                homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            }
             dockRecycler.requestFocus();
         }).start();
     }
 
     private void openSettings() {
-        lockBackgroundFocus(true);
+        if (homeContentContainer != null) {
+            homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
         applyPreferencesUi();
         settingsOverlay.setVisibility(View.VISIBLE);
         settingsOverlay.setAlpha(0f);
@@ -677,13 +645,17 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void closeSettings() {
         settingsOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             settingsOverlay.setVisibility(View.GONE);
-            lockBackgroundFocus(false);
+            if (homeContentContainer != null) {
+                homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            }
             dockRecycler.requestFocus();
         }).start();
     }
 
     private void openTilesManager() {
-        lockSettingsFocus(true);
+        if (settingsOverlay != null) {
+            settingsOverlay.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        }
         tilesAdapter.notifyDataSetChanged();
         tilesManagerOverlay.setVisibility(View.VISIBLE);
         tilesManagerOverlay.setAlpha(0f);
@@ -694,7 +666,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void closeTilesManager() {
         tilesManagerOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             tilesManagerOverlay.setVisibility(View.GONE);
-            lockSettingsFocus(false);
+            if (settingsOverlay != null) {
+                settingsOverlay.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            }
             findViewById(R.id.setting_item_tiles).requestFocus();
             loadApps();
         }).start();
@@ -1207,6 +1181,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
     // --- 4. Адаптер нативного окна выбора tvOS Picker ---
     private class PickerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        private final List<PickerOption> options;
+        private final OnOptionSelectedListener listener;
+
+        public PickerAdapter(List<PickerOption> options, OnOptionSelectedListener listener) {
+            this.options = options;
+            this.listener = listener;
+        }
+
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -1249,7 +1231,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            PickerOption opt = currentPickerOptions.get(position);
+            PickerOption opt = options.get(position);
             FrameLayout item = (FrameLayout) holder.itemView;
             TextView title = (TextView) item.getChildAt(0);
             TextView check = (TextView) item.getChildAt(1);
@@ -1272,15 +1254,15 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             item.setOnClickListener(v -> {
                 resetScreensaverTimer();
-                if (currentPickerListener != null) {
-                    currentPickerListener.onSelected(opt);
+                if (listener != null) {
+                    listener.onSelected(opt);
                 }
             });
         }
 
         @Override
         public int getItemCount() {
-            return currentPickerOptions.size();
+            return options.size();
         }
     }
 
