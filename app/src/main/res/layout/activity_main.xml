@@ -7,7 +7,6 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- 1. Фоновый постер Top Shelf / Заставка / Выбранные обои -->
     <ImageView
         android:id="@+id/hero_banner"
         android:layout_width="match_parent"
@@ -15,20 +14,17 @@
         android:scaleType="centerCrop"
         android:src="@drawable/bg_poster_studio" />
 
-    <!-- 2. Динамический слой эмбиент-подсветки (Ambient Glow) -->
     <View
         android:id="@+id/ambient_glow"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.45" />
 
-    <!-- 3. Градиент глубины tvOS -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/shelf_gradient_overlay" />
 
-    <!-- 4. Верхний бар: Заголовок + Шестеренка + Текстовые часы и Дата -->
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
@@ -100,7 +96,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 5. Нижний стеклянный плавающий Dock -->
     <LinearLayout
         android:id="@+id/dock_layout_wrapper"
         android:layout_width="match_parent"
@@ -149,7 +144,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 6. Полноэкранный каталог App Drawer -->
     <FrameLayout
         android:id="@+id/app_drawer_overlay"
         android:layout_width="match_parent"
@@ -157,7 +151,8 @@
         android:background="#E6050508"
         android:visibility="gone"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:descendantFocusability="afterDescendants">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -199,7 +194,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 7. Панель настроек Apple tvOS (Split-screen Glass Overlay) -->
     <FrameLayout
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
@@ -207,7 +201,8 @@
         android:background="#F2050508"
         android:visibility="gone"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:descendantFocusability="afterDescendants">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -218,13 +213,15 @@
             android:paddingTop="46dp"
             android:paddingBottom="46dp">
 
-            <!-- Левая колонка: пункты настроек tvOS -->
             <ScrollView
+                android:id="@+id/settings_scroll_view"
                 android:layout_width="450dp"
                 android:layout_height="match_parent"
-                android:scrollbars="none">
+                android:scrollbars="none"
+                android:focusable="false">
 
                 <LinearLayout
+                    android:id="@+id/settings_items_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
@@ -238,7 +235,6 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="22dp" />
 
-                    <!-- 1. Плитки главного экрана -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles"
                         android:layout_width="match_parent"
@@ -246,6 +242,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_tiles"
+                        android:nextFocusRight="@id/setting_item_tiles"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -269,7 +267,6 @@
                             android:textSize="20sp" />
                     </FrameLayout>
 
-                    <!-- 2. Внешний вид и обои -->
                     <FrameLayout
                         android:id="@+id/setting_item_wallpapers"
                         android:layout_width="match_parent"
@@ -277,6 +274,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_wallpapers"
+                        android:nextFocusRight="@id/setting_item_wallpapers"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -300,7 +299,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 3. Эмбиент-подсветка -->
                     <FrameLayout
                         android:id="@+id/setting_item_ambient"
                         android:layout_width="match_parent"
@@ -308,6 +306,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_ambient"
+                        android:nextFocusRight="@id/setting_item_ambient"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -331,7 +331,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 4. Размер и масштаб плиток -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles_size"
                         android:layout_width="match_parent"
@@ -339,6 +338,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_tiles_size"
+                        android:nextFocusRight="@id/setting_item_tiles_size"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -362,7 +363,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 5. Часы и дата -->
                     <FrameLayout
                         android:id="@+id/setting_item_clock"
                         android:layout_width="match_parent"
@@ -370,6 +370,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_clock"
+                        android:nextFocusRight="@id/setting_item_clock"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -393,7 +395,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 6. Заставка Aerial -->
                     <FrameLayout
                         android:id="@+id/setting_item_screensaver"
                         android:layout_width="match_parent"
@@ -401,6 +402,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_screensaver"
+                        android:nextFocusRight="@id/setting_item_screensaver"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -424,7 +427,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 7. Автозапуск -->
                     <FrameLayout
                         android:id="@+id/setting_item_autostart"
                         android:layout_width="match_parent"
@@ -432,6 +434,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_autostart"
+                        android:nextFocusRight="@id/setting_item_autostart"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -455,7 +459,6 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 8. Сбросить порядок -->
                     <FrameLayout
                         android:id="@+id/setting_item_reset_order"
                         android:layout_width="match_parent"
@@ -463,6 +466,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_reset_order"
+                        android:nextFocusRight="@id/setting_item_reset_order"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -477,7 +482,6 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- 9. Восстановить скрытые -->
                     <FrameLayout
                         android:id="@+id/setting_item_restore_hidden"
                         android:layout_width="match_parent"
@@ -485,6 +489,8 @@
                         android:layout_marginBottom="8dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_restore_hidden"
+                        android:nextFocusRight="@id/setting_item_restore_hidden"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -499,13 +505,14 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- 10. Параметры Android TV -->
                     <FrameLayout
                         android:id="@+id/setting_item_system"
                         android:layout_width="match_parent"
                         android:layout_height="54dp"
                         android:focusable="true"
                         android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_system"
+                        android:nextFocusRight="@id/setting_item_system"
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
@@ -531,7 +538,6 @@
                 </LinearLayout>
             </ScrollView>
 
-            <!-- Правая колонка: интерактивное превью tvOS -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -578,7 +584,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 8. Экран управления плитками (Tiles Manager) -->
     <FrameLayout
         android:id="@+id/tiles_manager_overlay"
         android:layout_width="match_parent"
@@ -586,7 +591,8 @@
         android:background="#F2050508"
         android:visibility="gone"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:descendantFocusability="afterDescendants">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -642,7 +648,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 9. Экран выбора опций tvOS (Стеклянное диалоговое окно вместо серого Android) -->
     <FrameLayout
         android:id="@+id/tvos_picker_overlay"
         android:layout_width="match_parent"
@@ -650,7 +655,8 @@
         android:background="#E6050508"
         android:visibility="gone"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:descendantFocusability="afterDescendants">
 
         <LinearLayout
             android:layout_width="560dp"
@@ -690,7 +696,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 10. Полноэкранная заставка Aerial Screensaver -->
     <FrameLayout
         android:id="@+id/screensaver_overlay"
         android:layout_width="match_parent"
