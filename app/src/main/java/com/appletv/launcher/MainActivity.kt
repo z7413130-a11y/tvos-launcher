@@ -1,4 +1,5 @@
 package com.appletv.launcher
+
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -49,25 +50,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+
 data class AppModel(
-val packageName: String,
-val label: String,
-val icon: ImageBitmap,
-val dominantColor: Color
+    val packageName: String,
+    val label: String,
+    val icon: ImageBitmap,
+    val dominantColor: Color
 )
+
 class MainActivity : ComponentActivity() {
-override fun onCreate(savedInstanceState: Bundle?) {
-super.onCreate(savedInstanceState)
-setContent {
-AppleTvHomeScreen()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            AppleTvHomeScreen()
+        }
+    }
 }
-}
-}
+
 @Composable
 fun AppleTvHomeScreen() {
-val context = LocalContext.current
-val scope = rememberCoroutineScope()
-val prefs = remember { context.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val prefs = remember { context.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE) }
+
     var installedApps by remember { mutableStateOf<List<AppModel>>(emptyList()) }
     var favoritePackages by remember { mutableStateOf<Set<String>>(emptySet()) }
 
@@ -144,7 +149,7 @@ val prefs = remember { context.getSharedPreferences("tvos_prefs", Context.MODE_P
                     Box(
                         modifier = Modifier
                             .background(
-                                color = Color(0x33FFFFFF),
+                                color = Color(0x33FFFFFF), // Полупрозрачный белый как в tvOS
                                 shape = RoundedCornerShape(32.dp)
                             )
                             .padding(horizontal = 24.dp, vertical = 20.dp)
@@ -188,6 +193,7 @@ val prefs = remember { context.getSharedPreferences("tvos_prefs", Context.MODE_P
                             }
                         )
                     }
+                    // Пустые слоты для выравнивания сетки влево
                     val emptySpots = 6 - rowList.size
                     for (i in 0 until emptySpots) {
                         Spacer(modifier = Modifier.width(150.dp))
@@ -197,36 +203,43 @@ val prefs = remember { context.getSharedPreferences("tvos_prefs", Context.MODE_P
         }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvosAppIcon(
-app: AppModel,
-onClick: () -> Unit,
-onLongClick: () -> Unit
+    app: AppModel,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-val interactionSource = remember { MutableInteractionSource() }
-val isFocused by interactionSource.collectIsFocusedAsState()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    // Плавное увеличение карточки (3D вылет)
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.15f else 1.0f,
         animationSpec = tween(durationMillis = 200), label = "scale"
     )
 
+    // Тень и свечение при фокусе
     val glowAlpha by animateFloatAsState(
         targetValue = if (isFocused) 0.6f else 0.0f,
         animationSpec = tween(durationMillis = 200), label = "glow"
     )
 
+    // Появление текста ПОД иконкой при фокусе
     val textAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
         animationSpec = tween(durationMillis = 200), label = "text"
     )
 
+    // zIndex нужен, чтобы при увеличении карточка перекрывала соседей и фон Дока
     Column(
         modifier = Modifier
             .width(150.dp)
             .zIndex(if (isFocused) 1f else 0f), 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // САМА КАРТОЧКА
         Box(
             modifier = Modifier
                 .width(150.dp)
@@ -237,6 +250,7 @@ val isFocused by interactionSource.collectIsFocusedAsState()
                         drawIntoCanvas { canvas ->
                             val paint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
+                                // Объемная мягкая тень (Drop Shadow)
                                 setShadowLayer(
                                     45f, 0f, 20f,
                                     android.graphics.Color.argb((glowAlpha * 255).toInt(), 0, 0, 0)
@@ -246,6 +260,7 @@ val isFocused by interactionSource.collectIsFocusedAsState()
                                 0f, 0f, size.width, size.height, 24.dp.toPx(), 24.dp.toPx(), paint
                             )
                             
+                            // Мягкое белое свечение по контуру (Glow)
                             val glowPaint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
@@ -260,7 +275,7 @@ val isFocused by interactionSource.collectIsFocusedAsState()
                     }
                 }
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFFEBEBEB))
+                .background(Color(0xFFEBEBEB)) // Светлая подложка как у Apple
                 .combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -278,6 +293,7 @@ val isFocused by interactionSource.collectIsFocusedAsState()
             )
         }
         
+        // ТЕКСТ ПОД КАРТОЧКОЙ (Скрыт без фокуса)
         Text(
             text = app.label,
             color = Color.White,
@@ -291,9 +307,12 @@ val isFocused by interactionSource.collectIsFocusedAsState()
         )
     }
 }
+
+// --- БЕЗОПАСНОЕ ПОЛУЧЕНИЕ ИКОНОК ---
 private suspend fun scanInstalledApplications(context: Context): List<AppModel> = withContext(Dispatchers.IO) {
-val pm = context.packageManager
-val result = mutableListOf<AppModel>()
+    val pm = context.packageManager
+    val result = mutableListOf<AppModel>()
+
     val tvIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
     var activities = pm.queryIntentActivities(tvIntent, 0)
     if (activities.isEmpty()) {
@@ -316,23 +335,25 @@ val result = mutableListOf<AppModel>()
     }
     result.sortedBy { it.label.lowercase(Locale.getDefault()) }
 }
+
 private fun drawableToBitmap(drawable: Drawable): Bitmap {
-if (drawable is BitmapDrawable && drawable.bitmap != null) {
-return drawable.bitmap
+    if (drawable is BitmapDrawable && drawable.bitmap != null) {
+        return drawable.bitmap
+    }
+    val w = drawable.intrinsicWidth.coerceAtLeast(1)
+    val h = drawable.intrinsicHeight.coerceAtLeast(1)
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return bmp
 }
-val w = drawable.intrinsicWidth.coerceAtLeast(1)
-val h = drawable.intrinsicHeight.coerceAtLeast(1)
-val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-val canvas = Canvas(bmp)
-drawable.setBounds(0, 0, canvas.width, canvas.height)
-drawable.draw(canvas)
-return bmp
-}
+
 private fun launchApp(context: Context, packageName: String) {
-val pm = context.packageManager
-var intent = pm.getLeanbackLaunchIntentForPackage(packageName)
-if (intent == null) {
-intent = pm.getLaunchIntentForPackage(packageName)
-}
-intent?.let { context.startActivity(it) }
+    val pm = context.packageManager
+    var intent = pm.getLeanbackLaunchIntentForPackage(packageName)
+    if (intent == null) {
+        intent = pm.getLaunchIntentForPackage(packageName)
+    }
+    intent?.let { context.startActivity(it) }
 }
