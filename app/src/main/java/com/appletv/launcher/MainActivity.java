@@ -1,13 +1,16 @@
 package com.appletv.launcher;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -21,17 +24,24 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView focusedTitle;
+    private ImageView heroBanner;
+    private TextView heroTitle;
 
-    static class AppItem {
-        String name;
+    static class TvApp {
+        String title;
+        String heroName;
         String packageName;
-        Drawable icon;
+        int bannerRes;
+        int[] gradientColors;
+        String iconText;
 
-        AppItem(String name, String packageName, Drawable icon) {
-            this.name = name;
+        TvApp(String title, String heroName, String packageName, int bannerRes, int[] gradientColors, String iconText) {
+            this.title = title;
+            this.heroName = heroName;
             this.packageName = packageName;
-            this.icon = icon;
+            this.bannerRes = bannerRes;
+            this.gradientColors = gradientColors;
+            this.iconText = iconText;
         }
     }
 
@@ -40,67 +50,81 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        focusedTitle = findViewById(R.id.focused_title);
+        heroBanner = findViewById(R.id.hero_banner);
+        heroTitle = findViewById(R.id.hero_title);
+
         RecyclerView dock = findViewById(R.id.dock_recycler);
         dock.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
         PackageManager pm = getPackageManager();
-        List<AppItem> apps = new ArrayList<>();
 
-        String[][] targets = {
-            {"Кинопоиск", "ru.kinopoisk.yandex.tv"},
-            {"YouTube", "com.yandex.tv.ytplayer"},
-            {"Zona", "mobi.zona"},
-            {"VK Видео", "com.vk.tv"}
-        };
-
-        for (String[] t : targets) {
-            Drawable icon = null;
-            try {
-                icon = pm.getApplicationIcon(t[1]);
-            } catch (Exception ignored) {}
-            apps.add(new AppItem(t[0], t[1], icon));
-        }
+        List<TvApp> apps = new ArrayList<>();
+        apps.add(new TvApp("Apple TV", "The Studio", "ru.kinopoisk.yandex.tv", R.drawable.bg_poster_studio, new int[]{0xFF1C1C22, 0xFF0D0D11}, " tv"));
+        apps.add(new TvApp("Кинопоиск", "Мажор в Сочи", "ru.kinopoisk.yandex.tv", R.drawable.bg_poster_kinopoisk, new int[]{0xFFFF5500, 0xFF8A1E00}, "КП"));
+        apps.add(new TvApp("YouTube", "Trending Videos", "com.yandex.tv.ytplayer", R.drawable.bg_poster_youtube, new int[]{0xFFFF2A2A, 0xFF990000}, "▶"));
+        apps.add(new TvApp("Zona", "Премьеры фильмов", "mobi.zona", R.drawable.bg_poster_zona, new int[]{0xFF00C853, 0xFF00695C}, "ZONA"));
+        apps.add(new TvApp("VK Видео", "Шоу и блоги", "com.vk.tv", R.drawable.bg_poster_vk, new int[]{0xFF0077FF, 0xFF003C8F}, "VK"));
+        apps.add(new TvApp("Настройки", "Параметры ТВ", "com.android.tv.settings", R.drawable.bg_poster_studio, new int[]{0xFF607D8B, 0xFF263238}, "⚙"));
 
         dock.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             @NonNull
             @Override
             public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
                 FrameLayout card = new FrameLayout(parent.getContext());
-                card.setLayoutParams(new ViewGroup.MarginLayoutParams(130, 76));
-                ((ViewGroup.MarginLayoutParams) card.getLayoutParams()).setMargins(8, 0, 8, 0);
+                ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(160, 100);
+                lp.setMargins(14, 18, 14, 18);
+                card.setLayoutParams(lp);
                 card.setFocusable(true);
+                card.setFocusableInTouchMode(true);
                 card.setClickable(true);
-                card.setBackgroundResource(R.drawable.card_selector);
+                card.setClipToOutline(true);
 
-                ImageView iv = new ImageView(parent.getContext());
-                iv.setId(View.generateViewId());
-                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(48, 48, Gravity.CENTER);
-                card.addView(iv, lp);
+                TextView label = new TextView(parent.getContext());
+                label.setTextColor(Color.WHITE);
+                label.setTextSize(18);
+                label.setTypeface(null, android.graphics.Typeface.BOLD);
+                label.setGravity(Gravity.CENTER);
+
+                FrameLayout.LayoutParams textLp = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                );
+                card.addView(label, textLp);
 
                 return new RecyclerView.ViewHolder(card) {};
             }
 
             @Override
             public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-                AppItem item = apps.get(position);
+                TvApp item = apps.get(position);
                 FrameLayout card = (FrameLayout) holder.itemView;
-                ImageView iv = (ImageView) card.getChildAt(0);
+                TextView label = (TextView) card.getChildAt(0);
 
-                if (item.icon != null) {
-                    iv.setImageDrawable(item.icon);
-                }
+                label.setText(item.iconText);
+
+                GradientDrawable normalBg = new GradientDrawable(
+                        GradientDrawable.Orientation.TOP_BOTTOM, item.gradientColors
+                );
+                normalBg.setCornerRadius(20f);
+                card.setBackground(normalBg);
 
                 card.setOnFocusChangeListener((v, hasFocus) -> {
                     if (hasFocus) {
-                        v.setScaleX(1.15f);
-                        v.setScaleY(1.15f);
-                        v.setElevation(12f);
-                        focusedTitle.setText(item.name);
+                        animateScale(v, 1.20f, 1.20f, 16f);
+
+                        GradientDrawable focusedBg = new GradientDrawable(
+                                GradientDrawable.Orientation.TOP_BOTTOM, item.gradientColors
+                        );
+                        focusedBg.setCornerRadius(20f);
+                        focusedBg.setStroke(4, Color.WHITE);
+                        v.setBackground(focusedBg);
+
+                        heroTitle.setText(item.heroName);
+                        heroBanner.setImageResource(item.bannerRes);
+                        heroBanner.animate().alpha(1.0f).setDuration(250).start();
                     } else {
-                        v.setScaleX(1.0f);
-                        v.setScaleY(1.0f);
-                        v.setElevation(0f);
+                        animateScale(v, 1.0f, 1.0f, 0f);
+                        v.setBackground(normalBg);
                     }
                 });
 
@@ -110,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
                     if (launchIntent != null) {
                         startActivity(launchIntent);
                     } else {
-                        Toast.makeText(MainActivity.this, item.name + " не установлено", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, item.title, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -120,5 +144,17 @@ public class MainActivity extends AppCompatActivity {
                 return apps.size();
             }
         });
+    }
+
+    private void animateScale(View view, float sx, float sy, float elev) {
+        ObjectAnimator ax = ObjectAnimator.ofFloat(view, "scaleX", sx);
+        ObjectAnimator ay = ObjectAnimator.ofFloat(view, "scaleY", sy);
+        ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(ax, ay, az);
+        set.setDuration(220);
+        set.setInterpolator(new DecelerateInterpolator());
+        set.start();
     }
 }

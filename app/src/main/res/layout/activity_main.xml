@@ -2,52 +2,115 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#06060A">
+    android:background="#050508"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <TextView
-        android:id="@+id/focused_title"
-        android:layout_width="wrap_content"
+    <ImageView
+        android:id="@+id/hero_banner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_poster_studio" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/shelf_gradient_overlay" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="40dp"
-        android:text="Кинопоиск"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
-        android:textStyle="bold" />
+        android:orientation="horizontal"
+        android:paddingStart="64dp"
+        android:paddingEnd="64dp"
+        android:paddingTop="38dp">
 
-    <TextClock
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginEnd="48dp"
-        android:layout_marginTop="44dp"
-        android:format12Hour="h:mm a"
-        android:format24Hour="HH:mm"
-        android:textColor="#CCFFFFFF"
-        android:textSize="18sp" />
-
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="32dp">
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="The Studio"
+            android:textColor="#FFFFFF"
+            android:textSize="44sp"
+            android:textStyle="bold|italic"
+            android:fontFamily="sans-serif-medium"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="4"
+            android:shadowRadius="16" />
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="96dp"
-            android:background="@drawable/glass_dock_bg"
+            android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            android:paddingHorizontal="12dp">
+            android:orientation="horizontal">
+
+            <TextClock
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm a"
+                android:format24Hour="HH:mm"
+                android:textColor="#EEFFFFFF"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="14dp"
+                android:src="@android:drawable/stat_sys_data_bluetooth"
+                android:tint="#AAFFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp">
+
+        <FrameLayout
+            android:id="@+id/glass_dock_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/glass_dock_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/dock_recycler"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal" />
+                android:orientation="horizontal"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/peeking_shelf"
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <View android:layout_width="56dp" android:layout_height="8dp" android:layout_marginHorizontal="6dp" android:background="@drawable/shape_peeking_pill_blue" />
+            <View android:layout_width="56dp" android:layout_height="8dp" android:layout_marginHorizontal="6dp" android:background="@drawable/shape_peeking_pill_purple" />
+            <View android:layout_width="56dp" android:layout_height="8dp" android:layout_marginHorizontal="6dp" android:background="@drawable/shape_peeking_pill_orange" />
+            <View android:layout_width="56dp" android:layout_height="8dp" android:layout_marginHorizontal="6dp" android:background="@drawable/shape_peeking_pill_green" />
+            <View android:layout_width="56dp" android:layout_height="8dp" android:layout_marginHorizontal="6dp" android:background="@drawable/shape_peeking_pill_pink" />
         </LinearLayout>
-    </FrameLayout>
+    </LinearLayout>
+
 </RelativeLayout>
