@@ -11,14 +11,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
-import android.graphics.Outline;
-import android.graphics.RenderEffect;
-import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -26,7 +22,6 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
@@ -54,12 +49,10 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements PackageReceiver.PackageListener {
 
-    private View blurTargetContainer;
     private ImageView heroBanner;
     private View ambientGlow;
     private TextView heroTitle;
     private RelativeLayout homeContentContainer;
-    private FrameLayout glassDockContainer;
     private RecyclerView dockRecycler;
     private FrameLayout btnSettings;
     private TextClock mainTextClock;
@@ -103,7 +96,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private SharedPreferences prefs;
 
     private int currentAmbientColor = 0xFF14101A;
-    private ValueAnimator blurAnimator;
 
     public static class AppItem {
         public String packageName;
@@ -156,12 +148,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         prefs = getSharedPreferences("tvos_launcher_prefs", Context.MODE_PRIVATE);
         PackageReceiver.listener = this;
 
-        blurTargetContainer = findViewById(R.id.blur_target_container);
         heroBanner = findViewById(R.id.hero_banner);
         ambientGlow = findViewById(R.id.ambient_glow);
         heroTitle = findViewById(R.id.hero_title);
         homeContentContainer = findViewById(R.id.home_content_container);
-        glassDockContainer = findViewById(R.id.glass_dock_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         mainTextClock = findViewById(R.id.main_text_clock);
@@ -234,10 +224,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    private int dpToPx(int dp) {
-        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
-    }
-
     private void applyPreferencesUi() {
         // 1. Применение обоев
         String wallpaper = prefs.getString("wallpaper_theme", "dynamic");
@@ -274,22 +260,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tvAmbientVal.setText(ambientLevel == 25 ? "Мягкая (25%)" : (ambientLevel == 45 ? "Стандарт (45%)" : "Яркая (75%)"));
         }
 
-        // 3. Размер плиток и адаптация высоты стеклянного дока
+        // 3. Размер плиток
         String sizeMode = prefs.getString("tiles_size", "normal");
         tvSizeVal.setText(sizeMode.equals("compact") ? "Компактный" : (sizeMode.equals("large") ? "Крупный" : "Стандарт tvOS"));
-
-        // Динамический пересчет высоты дока: базовый размер карточки + запас под 1.20x зум при фокусе
-        int cardHeightDp = sizeMode.equals("compact") ? 84 : (sizeMode.equals("large") ? 118 : 100);
-        int marginVerticalDp = sizeMode.equals("compact") ? 12 : (sizeMode.equals("large") ? 20 : 16);
-        int dockHeightPx = dpToPx((int)(cardHeightDp * 1.25f) + (marginVerticalDp * 2) + 24);
-
-        if (glassDockContainer != null) {
-            ViewGroup.LayoutParams dLp = glassDockContainer.getLayoutParams();
-            if (dLp != null) {
-                dLp.height = dockHeightPx;
-                glassDockContainer.setLayoutParams(dLp);
-            }
-        }
 
         // 4. Часы
         tvClockVal.setText(prefs.getBoolean("clock_24h", true) ? "24-часовой" : "12-часовой (AM/PM)");
@@ -304,49 +277,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tvAutostartVal.setText("Главный экран");
         } else {
             tvAutostartVal.setText(prefs.getString("autostart_label", "Приложение"));
-        }
-    }
-
-    /**
-     * Аппаратный мягкий эффект размытия заднего плана (iOS / tvOS Backdrop Filter)
-     */
-    private void applyBlurEffect(boolean enable) {
-        if (blurTargetContainer == null) return;
-
-        if (blurAnimator != null) {
-            blurAnimator.cancel();
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            float fromRadius = enable ? 0.1f : 40.0f;
-            float toRadius = enable ? 40.0f : 0.1f;
-
-            blurAnimator = ValueAnimator.ofFloat(fromRadius, toRadius);
-            blurAnimator.setDuration(240);
-            blurAnimator.setInterpolator(new DecelerateInterpolator());
-            blurAnimator.addUpdateListener(anim -> {
-                float radius = (float) anim.getAnimatedValue();
-                if (radius > 0.5f) {
-                    blurTargetContainer.setRenderEffect(
-                            RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP)
-                    );
-                } else {
-                    blurTargetContainer.setRenderEffect(null);
-                }
-            });
-            blurAnimator.start();
-        } else {
-            // Мягкий cinematic scale fallback для более старых систем
-            float targetScale = enable ? 0.96f : 1.0f;
-            float targetAlpha = enable ? 0.55f : 1.0f;
-
-            blurTargetContainer.animate()
-                    .scaleX(targetScale)
-                    .scaleY(targetScale)
-                    .alpha(targetAlpha)
-                    .setDuration(240)
-                    .setInterpolator(new DecelerateInterpolator())
-                    .start();
         }
     }
 
@@ -491,7 +421,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         setupSettingFocus(itemSys, tvSys, arrSys, "⚙", "Android TV", "Переход в стандартные системные параметры телевизора.");
     }
 
-    // --- МОДАЛЬНЫЙ ДИАЛОГ ВЫБОРА tvOS ---
+    // --- МОДАЛЬНЫЙ ДИАЛОГ ВЫБОРА tvOS (НАТИВНОЕ ОКНО С ПОЛНОЙ ИЗОЛЯЦИЕЙ ФОКУСА) ---
 
     private void openTvosPickerDialog(String title, List<PickerOption> options, OnOptionSelectedListener listener) {
         Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
@@ -678,7 +608,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         if (homeContentContainer != null) {
             homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         }
-        applyBlurEffect(true);
         appDrawerOverlay.setVisibility(View.VISIBLE);
         appDrawerOverlay.setAlpha(0f);
         appDrawerOverlay.animate().alpha(1f).setDuration(220).start();
@@ -686,7 +615,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void closeDrawer() {
-        applyBlurEffect(false);
         appDrawerOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             appDrawerOverlay.setVisibility(View.GONE);
             if (homeContentContainer != null) {
@@ -701,7 +629,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             homeContentContainer.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         }
         applyPreferencesUi();
-        applyBlurEffect(true);
         settingsOverlay.setVisibility(View.VISIBLE);
         settingsOverlay.setAlpha(0f);
         settingsOverlay.animate().alpha(1f).setDuration(220).start();
@@ -709,7 +636,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void closeSettings() {
-        applyBlurEffect(false);
         settingsOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             settingsOverlay.setVisibility(View.GONE);
             if (homeContentContainer != null) {
@@ -908,42 +834,28 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. Адаптер главного Dock (Идеальное сохранение скругления и защита от обрезки) ---
+    // --- 1. Адаптер главного Dock ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
             String sizeMode = prefs.getString("tiles_size", "normal");
-            if (sizeMode.equals("compact")) return dpToPx(135);
-            if (sizeMode.equals("large")) return dpToPx(190);
-            return dpToPx(160);
+            if (sizeMode.equals("compact")) return 135;
+            if (sizeMode.equals("large")) return 190;
+            return 160;
         }
 
         private int getCardHeight() {
             String sizeMode = prefs.getString("tiles_size", "normal");
-            if (sizeMode.equals("compact")) return dpToPx(84);
-            if (sizeMode.equals("large")) return dpToPx(118);
-            return dpToPx(100);
+            if (sizeMode.equals("compact")) return 84;
+            if (sizeMode.equals("large")) return 118;
+            return 100;
         }
 
         private int getIconSize() {
             String sizeMode = prefs.getString("tiles_size", "normal");
-            if (sizeMode.equals("compact")) return dpToPx(46);
-            if (sizeMode.equals("large")) return dpToPx(66);
-            return dpToPx(56);
-        }
-
-        private int getMarginHorizontal() {
-            String sizeMode = prefs.getString("tiles_size", "normal");
-            if (sizeMode.equals("compact")) return dpToPx(10);
-            if (sizeMode.equals("large")) return dpToPx(16);
-            return dpToPx(14);
-        }
-
-        private int getMarginVertical() {
-            String sizeMode = prefs.getString("tiles_size", "normal");
-            if (sizeMode.equals("compact")) return dpToPx(12);
-            if (sizeMode.equals("large")) return dpToPx(20);
-            return dpToPx(16);
+            if (sizeMode.equals("compact")) return 46;
+            if (sizeMode.equals("large")) return 66;
+            return 56;
         }
 
         @NonNull
@@ -951,19 +863,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(getCardWidth(), getCardHeight());
-            lp.setMargins(getMarginHorizontal(), getMarginVertical(), getMarginHorizontal(), getMarginVertical());
+            lp.setMargins(14, 18, 14, 18);
             card.setLayoutParams(lp);
             card.setFocusable(true);
             card.setClickable(true);
-
-            // Аппаратное скругление углов tvOS, защищающее от срезания в квадрат
-            final float radiusPx = dpToPx(20);
-            card.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radiusPx);
-                }
-            });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
@@ -985,17 +888,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             AppItem item = homeApps.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
 
-            // Синхронизация габаритов при смене масштаба в SharedPreferences
             int targetW = getCardWidth();
             int targetH = getCardHeight();
-            int marginH = getMarginHorizontal();
-            int marginV = getMarginVertical();
-
-            ViewGroup.MarginLayoutParams clp = (ViewGroup.MarginLayoutParams) card.getLayoutParams();
-            if (clp.width != targetW || clp.height != targetH || clp.topMargin != marginV) {
+            ViewGroup.LayoutParams clp = card.getLayoutParams();
+            if (clp.width != targetW || clp.height != targetH) {
                 clp.width = targetW;
                 clp.height = targetH;
-                clp.setMargins(marginH, marginV, marginH, marginV);
                 card.setLayoutParams(clp);
             }
 
@@ -1020,18 +918,17 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 iv.setImageDrawable(item.icon);
             }
 
-            float cornerRadius = dpToPx(20);
             GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            normalBg.setCornerRadius(cornerRadius);
+            normalBg.setCornerRadius(20f);
             card.setBackground(normalBg);
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    animateScale(v, 1.20f, 1.20f, dpToPx(16));
+                    animateScale(v, 1.20f, 1.20f, 16f);
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-                    focusBg.setCornerRadius(cornerRadius);
-                    focusBg.setStroke(dpToPx(4), Color.WHITE);
+                    focusBg.setCornerRadius(20f);
+                    focusBg.setStroke(4, Color.WHITE);
                     v.setBackground(focusBg);
 
                     heroTitle.setText(item.label);
@@ -1078,31 +975,22 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(180), dpToPx(110));
-            int m = dpToPx(14);
-            lp.setMargins(m, m, m, m);
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(180, 110);
+            lp.setMargins(14, 14, 14, 14);
             card.setLayoutParams(lp);
             card.setFocusable(true);
             card.setClickable(true);
-
-            final float radiusPx = dpToPx(20);
-            card.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radiusPx);
-                }
-            });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(60), dpToPx(60), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(60, 60, Gravity.CENTER));
 
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(12);
             tv.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-            tv.setPadding(0, 0, 0, dpToPx(8));
+            tv.setPadding(0, 0, 0, 8);
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             return new RecyclerView.ViewHolder(card) {};
@@ -1118,18 +1006,17 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             iv.setImageDrawable(item.icon);
             tv.setText(item.label);
 
-            float cornerRadius = dpToPx(20);
             GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            normalBg.setCornerRadius(cornerRadius);
+            normalBg.setCornerRadius(20f);
             card.setBackground(normalBg);
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    animateScale(v, 1.15f, 1.15f, dpToPx(14));
+                    animateScale(v, 1.15f, 1.15f, 14f);
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-                    focusBg.setCornerRadius(cornerRadius);
-                    focusBg.setStroke(dpToPx(3), Color.WHITE);
+                    focusBg.setCornerRadius(20f);
+                    focusBg.setStroke(3, Color.WHITE);
                     v.setBackground(focusBg);
                 } else {
                     animateScale(v, 1.0f, 1.0f, 0f);
@@ -1165,14 +1052,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout row = new FrameLayout(parent.getContext());
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(68)
+                    ViewGroup.LayoutParams.MATCH_PARENT, 68
             );
-            lp.setMargins(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
+            lp.setMargins(10, 8, 10, 8);
             row.setLayoutParams(lp);
             row.setFocusable(true);
             row.setClickable(true);
             row.setBackgroundResource(R.drawable.settings_item_selector);
-            row.setPadding(dpToPx(20), 0, dpToPx(20), 0);
+            row.setPadding(20, 0, 20, 0);
 
             LinearLayout left = new LinearLayout(parent.getContext());
             left.setOrientation(LinearLayout.HORIZONTAL);
@@ -1183,7 +1070,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             row.addView(left, leftLp);
 
             ImageView iv = new ImageView(parent.getContext());
-            left.addView(iv, new LinearLayout.LayoutParams(dpToPx(42), dpToPx(42)));
+            left.addView(iv, new LinearLayout.LayoutParams(42, 42));
 
             TextView tv = new TextView(parent.getContext());
             tv.setTextSize(16);
@@ -1192,13 +1079,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            tvLp.setMarginStart(dpToPx(18));
+            tvLp.setMarginStart(18);
             left.addView(tv, tvLp);
 
             TextView statusBadge = new TextView(parent.getContext());
             statusBadge.setTextSize(13);
             statusBadge.setTypeface(null, android.graphics.Typeface.BOLD);
-            statusBadge.setPadding(dpToPx(16), dpToPx(6), dpToPx(16), dpToPx(6));
+            statusBadge.setPadding(16, 6, 16, 6);
             FrameLayout.LayoutParams badgeLp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL
             );
@@ -1227,7 +1114,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             row.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    animateScale(v, 1.03f, 1.03f, dpToPx(8));
+                    animateScale(v, 1.03f, 1.03f, 8f);
                     tv.setTextColor(Color.BLACK);
                     updateBadgeUi(badge, loadPinnedOrder().contains(item.packageName), true);
                 } else {
@@ -1256,7 +1143,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         private void updateBadgeUi(TextView badge, boolean isPinned, boolean isFocused) {
             GradientDrawable gd = new GradientDrawable();
-            gd.setCornerRadius(dpToPx(12));
+            gd.setCornerRadius(12f);
             if (isPinned) {
                 badge.setText("НА ЭКРАНЕ");
                 if (isFocused) {
@@ -1300,15 +1187,16 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout item = new FrameLayout(parent.getContext());
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(56)
+                    ViewGroup.LayoutParams.MATCH_PARENT, 56
             );
-            lp.setMargins(0, dpToPx(5), 0, dpToPx(5));
+            lp.setMargins(0, 5, 0, 5);
             item.setLayoutParams(lp);
             item.setFocusable(true);
             item.setClickable(true);
             item.setBackgroundResource(R.drawable.settings_item_selector);
-            item.setPadding(dpToPx(20), 0, dpToPx(20), 0);
+            item.setPadding(20, 0, 20, 0);
 
+            // Изоляция: стрелки влево и вправо не выводят фокус наружу
             item.setNextFocusLeftId(item.getId());
             item.setNextFocusRightId(item.getId());
 
@@ -1347,7 +1235,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             item.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
-                    animateScale(v, 1.03f, 1.03f, dpToPx(8));
+                    animateScale(v, 1.03f, 1.03f, 8f);
                     title.setTextColor(Color.BLACK);
                     check.setTextColor(0xFF1B7030);
                 } else {
