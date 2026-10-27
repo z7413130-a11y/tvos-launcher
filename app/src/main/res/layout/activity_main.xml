@@ -36,7 +36,7 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- ВЕРХНЯЯ СТАТУСНАЯ СТРОКА (НЕ ТРОГАЕМ, ИДЕАЛЬНА) -->
+        <!-- ВЕРХНЯЯ СТАТУСНАЯ СТРОКА (СПРАВА В УГЛУ) -->
         <LinearLayout
             android:id="@+id/top_status_pill"
             android:layout_width="wrap_content"
@@ -762,7 +762,7 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 6. КОМПАКТНАЯ КАРТОЧКА ЦЕНТРА УПРАВЛЕНИЯ (ТОЧНАЯ КОПИЯ С ФОТО СПРАВА СБОКУ) -->
+    <!-- 6. КОМПАКТНАЯ КАРТОЧКА ЦЕНТРА УПРАВЛЕНИЯ (ТОЧНАЯ КОПИЯ С ФОТО СПРАВА СБОКУ, РАЗМЕР 360DP) -->
     <FrameLayout
         android:id="@+id/control_center_overlay"
         android:layout_width="match_parent"
