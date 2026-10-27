@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private TextClock mainTextClock;
     private TextView tvDateDisplay;
 
+    // Стеклянные оверлеи
     private FrameLayout appDrawerOverlay;
     private RecyclerView drawerRecycler;
 
@@ -59,6 +60,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
+    // tvOS Стеклянный диалог выбора (вместо серого Android)
+    private FrameLayout tvosPickerOverlay;
+    private TextView tvosPickerTitle;
+    private RecyclerView tvosPickerRecycler;
+    private PickerAdapter pickerAdapter;
+
+    // Заставка Screensaver
     private FrameLayout screensaverOverlay;
     private ImageView screensaverBg;
     private TextClock saverTextClock;
@@ -66,10 +74,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private final Handler idleHandler = new Handler(Looper.getMainLooper());
     private Runnable idleRunnable;
 
+    // Превью настроек
     private TextView settingsPreviewIcon;
     private TextView settingsPreviewTitle;
     private TextView settingsPreviewDesc;
 
+    // Значения настроек
     private TextView tvWallpapersVal;
     private TextView tvAmbientVal;
     private TextView tvSizeVal;
@@ -114,6 +124,25 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    public static class PickerOption {
+        public String title;
+        public String key;
+        public boolean isSelected;
+
+        public PickerOption(String title, String key, boolean isSelected) {
+            this.title = title;
+            this.key = key;
+            this.isSelected = isSelected;
+        }
+    }
+
+    public interface OnOptionSelectedListener {
+        void onSelected(PickerOption option);
+    }
+
+    private final List<PickerOption> currentPickerOptions = new ArrayList<>();
+    private OnOptionSelectedListener currentPickerListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -136,6 +165,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         settingsOverlay = findViewById(R.id.settings_overlay);
         tilesManagerOverlay = findViewById(R.id.tiles_manager_overlay);
         tilesManagerRecycler = findViewById(R.id.tiles_manager_recycler);
+
+        tvosPickerOverlay = findViewById(R.id.tvos_picker_overlay);
+        tvosPickerTitle = findViewById(R.id.tvos_picker_title);
+        tvosPickerRecycler = findViewById(R.id.tvos_picker_recycler);
+        tvosPickerRecycler.setLayoutManager(new LinearLayoutManager(this));
+        pickerAdapter = new PickerAdapter();
+        tvosPickerRecycler.setAdapter(pickerAdapter);
 
         screensaverOverlay = findViewById(R.id.screensaver_overlay);
         screensaverBg = findViewById(R.id.screensaver_bg);
@@ -198,6 +234,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void applyPreferencesUi() {
+        // 1. Применение обоев
         String wallpaper = prefs.getString("wallpaper_theme", "dynamic");
         switch (wallpaper) {
             case "space":
@@ -221,6 +258,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 break;
         }
 
+        // 2. Эмбиент подсветка
         int ambientLevel = prefs.getInt("ambient_level", 45);
         if (ambientLevel == 0) {
             tvAmbientVal.setText("Выключена");
@@ -231,14 +269,18 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             tvAmbientVal.setText(ambientLevel == 25 ? "Мягкая (25%)" : (ambientLevel == 45 ? "Стандарт (45%)" : "Яркая (75%)"));
         }
 
+        // 3. Размер плиток
         String sizeMode = prefs.getString("tiles_size", "normal");
         tvSizeVal.setText(sizeMode.equals("compact") ? "Компактный" : (sizeMode.equals("large") ? "Крупный" : "Стандарт tvOS"));
 
+        // 4. Часы
         tvClockVal.setText(prefs.getBoolean("clock_24h", true) ? "24-часовой" : "12-часовой (AM/PM)");
 
+        // 5. Заставка
         int saverMinutes = prefs.getInt("screensaver_timeout", 5);
         tvSaverVal.setText(saverMinutes == 0 ? "Отключено" : "Через " + saverMinutes + " мин");
 
+        // 6. Автозапуск
         String autostartPkg = prefs.getString("autostart_package", "none");
         if (autostartPkg.equals("none")) {
             tvAutostartVal.setText("Главный экран");
@@ -312,42 +354,50 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
+        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
         itemTiles.setOnClickListener(v -> openTilesManager());
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
+        // 2. Внешний вид и обои (в нативном окне tvOS)
         FrameLayout itemWallpapers = findViewById(R.id.setting_item_wallpapers);
         TextView tvWallpapers = findViewById(R.id.tv_setting_wallpapers_title);
-        itemWallpapers.setOnClickListener(v -> showWallpaperPicker());
+        itemWallpapers.setOnClickListener(v -> showWallpaperPickerTvos());
         setupSettingFocus(itemWallpapers, tvWallpapers, tvWallpapersVal, "🖼", "Обои и фон", "Выбор кинематографичных заставок Apple Aerial, динамического режима под приложения или тёмного графита.");
 
+        // 3. Эмбиент-подсветка
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
-        itemAmbient.setOnClickListener(v -> showAmbientPicker());
+        itemAmbient.setOnClickListener(v -> showAmbientPickerTvos());
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
+        // 4. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
-        itemSize.setOnClickListener(v -> showTileSizePicker());
-        setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
+        itemSize.setOnClickListener(v -> showTileSizePickerTvos());
+        setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
+        // 5. Часы и верхний бар
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
-        itemClock.setOnClickListener(v -> showClockPicker());
+        itemClock.setOnClickListener(v -> showClockPickerTvos());
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и верхний бар", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
+        // 6. Заставка Aerial
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
-        itemSaver.setOnClickListener(v -> showScreensaverPicker());
+        itemSaver.setOnClickListener(v -> showScreensaverPickerTvos());
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
+        // 7. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
-        itemAutostart.setOnClickListener(v -> showAutostartPicker());
+        itemAutostart.setOnClickListener(v -> showAutostartPickerTvos());
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
+        // 8. Сбросить порядок
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
@@ -357,6 +407,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
+        // 9. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
@@ -366,6 +417,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
+        // 10. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
@@ -377,85 +429,127 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         setupSettingFocus(itemSys, tvSys, arrSys, "⚙", "Android TV", "Переход в стандартные системные параметры телевизора.");
     }
 
-    private void showWallpaperPicker() {
-        CharSequence[] options = {"Динамические (под приложение)", "Космос (Apple Aerial)", "Ночной город", "Океан (Aerial)", "Тёмный графит (Minimal)"};
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Внешний вид и Обои")
-                .setItems(options, (dialog, which) -> {
-                    String[] keys = {"dynamic", "space", "city", "ocean", "minimal"};
-                    prefs.edit().putString("wallpaper_theme", keys[which]).apply();
-                    applyPreferencesUi();
-                    loadApps();
-                }).show();
+    // --- НАТИВНЫЕ ДИАЛОГИ ВЫБОРА tvOS (БЕЗ ANDROID-МЕНЮ) ---
+
+    private void openTvosPicker(String title, List<PickerOption> options, OnOptionSelectedListener listener) {
+        tvosPickerTitle.setText(title);
+        currentPickerOptions.clear();
+        currentPickerOptions.addAll(options);
+        currentPickerListener = listener;
+        pickerAdapter.notifyDataSetChanged();
+
+        tvosPickerOverlay.setVisibility(View.VISIBLE);
+        tvosPickerOverlay.setAlpha(0f);
+        tvosPickerOverlay.animate().alpha(1f).setDuration(200).start();
+        tvosPickerRecycler.requestFocus();
     }
 
-    private void showAmbientPicker() {
-        CharSequence[] options = {"Выключить подсветку", "Мягкая (25%)", "Стандартная (45%)", "Яркая неоновая (75%)"};
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Эмбиент-подсветка (Ambient Glow)")
-                .setItems(options, (dialog, which) -> {
-                    int[] levels = {0, 25, 45, 75};
-                    prefs.edit().putInt("ambient_level", levels[which]).apply();
-                    applyPreferencesUi();
-                }).show();
+    private void closeTvosPicker() {
+        tvosPickerOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+            tvosPickerOverlay.setVisibility(View.GONE);
+            settingsOverlay.requestFocus();
+        }).start();
     }
 
-    private void showTileSizePicker() {
-        CharSequence[] options = {"Компактный (7-8 в ряд)", "Стандарт tvOS (160dp)", "Крупный Focus (190dp)"};
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Размер плиток в Dock")
-                .setItems(options, (dialog, which) -> {
-                    String[] keys = {"compact", "normal", "large"};
-                    prefs.edit().putString("tiles_size", keys[which]).apply();
-                    applyPreferencesUi();
-                    dockAdapter.notifyDataSetChanged();
-                }).show();
+    private void showWallpaperPickerTvos() {
+        String current = prefs.getString("wallpaper_theme", "dynamic");
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Динамические (под приложение)", "dynamic", current.equals("dynamic")));
+        list.add(new PickerOption("Космос (Apple Aerial)", "space", current.equals("space")));
+        list.add(new PickerOption("Ночной город", "city", current.equals("city")));
+        list.add(new PickerOption("Океан (Aerial)", "ocean", current.equals("ocean")));
+        list.add(new PickerOption("Тёмный графит (Minimal)", "minimal", current.equals("minimal")));
+
+        openTvosPicker("Внешний вид и Обои", list, option -> {
+            prefs.edit().putString("wallpaper_theme", option.key).apply();
+            applyPreferencesUi();
+            loadApps();
+            closeTvosPicker();
+        });
     }
 
-    private void showClockPicker() {
-        CharSequence[] options = {"24-часовой формат (21:45)", "12-часовой формат (9:45 PM)"};
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Формат времени")
-                .setItems(options, (dialog, which) -> {
-                    prefs.edit().putBoolean("clock_24h", which == 0).apply();
-                    updateDateAndClockUi();
-                    applyPreferencesUi();
-                }).show();
+    private void showAmbientPickerTvos() {
+        int current = prefs.getInt("ambient_level", 45);
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Выключить подсветку", "0", current == 0));
+        list.add(new PickerOption("Мягкая (25%)", "25", current == 25));
+        list.add(new PickerOption("Стандартная (45%)", "45", current == 45));
+        list.add(new PickerOption("Яркая неоновая (75%)", "75", current == 75));
+
+        openTvosPicker("Эмбиент-подсветка", list, option -> {
+            prefs.edit().putInt("ambient_level", Integer.parseInt(option.key)).apply();
+            applyPreferencesUi();
+            closeTvosPicker();
+        });
     }
 
-    private void showScreensaverPicker() {
-        CharSequence[] options = {"Отключить заставку", "Через 2 минуты", "Через 5 минут", "Через 10 минут"};
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Заставка и режим сна")
-                .setItems(options, (dialog, which) -> {
-                    int[] timeouts = {0, 2, 5, 10};
-                    prefs.edit().putInt("screensaver_timeout", timeouts[which]).apply();
-                    applyPreferencesUi();
-                    setupScreensaverTimer();
-                }).show();
+    private void showTileSizePickerTvos() {
+        String current = prefs.getString("tiles_size", "normal");
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Компактный (7-8 в ряд)", "compact", current.equals("compact")));
+        list.add(new PickerOption("Стандарт tvOS (160dp)", "normal", current.equals("normal")));
+        list.add(new PickerOption("Крупный Focus (190dp)", "large", current.equals("large")));
+
+        openTvosPicker("Размер плиток в Dock", list, option -> {
+            prefs.edit().putString("tiles_size", option.key).apply();
+            applyPreferencesUi();
+
+            // Пересоздаем адаптер полностью, чтобы не оставалось старых кэшированных размеров
+            dockAdapter = new AppAdapter();
+            dockRecycler.setAdapter(dockAdapter);
+
+            closeTvosPicker();
+        });
     }
 
-    private void showAutostartPicker() {
-        List<String> labels = new ArrayList<>();
-        List<String> pkgs = new ArrayList<>();
-        labels.add("Оставаться на Главном экране");
-        pkgs.add("none");
+    private void showClockPickerTvos() {
+        boolean is24 = prefs.getBoolean("clock_24h", true);
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("24-часовой формат (21:45)", "true", is24));
+        list.add(new PickerOption("12-часовой формат (9:45 PM)", "false", !is24));
 
-        for (AppItem item : allInstalledApps) {
-            labels.add(item.label);
-            pkgs.add(item.packageName);
+        openTvosPicker("Формат времени", list, option -> {
+            prefs.edit().putBoolean("clock_24h", Boolean.parseBoolean(option.key)).apply();
+            updateDateAndClockUi();
+            applyPreferencesUi();
+            closeTvosPicker();
+        });
+    }
+
+    private void showScreensaverPickerTvos() {
+        int current = prefs.getInt("screensaver_timeout", 5);
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Отключить заставку", "0", current == 0));
+        list.add(new PickerOption("Через 2 минуты", "2", current == 2));
+        list.add(new PickerOption("Через 5 минут", "5", current == 5));
+        list.add(new PickerOption("Через 10 минут", "10", current == 10));
+
+        openTvosPicker("Заставка и режим сна", list, option -> {
+            prefs.edit().putInt("screensaver_timeout", Integer.parseInt(option.key)).apply();
+            applyPreferencesUi();
+            setupScreensaverTimer();
+            closeTvosPicker();
+        });
+    }
+
+    private void showAutostartPickerTvos() {
+        String current = prefs.getString("autostart_package", "none");
+        List<PickerOption> list = new ArrayList<>();
+        list.add(new PickerOption("Оставаться на Главном экране", "none", current.equals("none")));
+
+        for (AppItem app : allInstalledApps) {
+            list.add(new PickerOption(app.label, app.packageName, current.equals(app.packageName)));
         }
 
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("Быстрый запуск при включении")
-                .setItems(labels.toArray(new CharSequence[0]), (dialog, which) -> {
-                    prefs.edit()
-                            .putString("autostart_package", pkgs.get(which))
-                            .putString("autostart_label", labels.get(which))
-                            .apply();
-                    applyPreferencesUi();
-                    Toast.makeText(this, "Автозапуск: " + labels.get(which), Toast.LENGTH_SHORT).show();
-                }).show();
+        openTvosPicker("Быстрый запуск при включении", list, option -> {
+            prefs.edit()
+                    .putString("autostart_package", option.key)
+                    .putString("autostart_label", option.title)
+                    .apply();
+            applyPreferencesUi();
+            Toast.makeText(this, "Автозапуск: " + option.title, Toast.LENGTH_SHORT).show();
+            closeTvosPicker();
+        });
     }
 
     private void setupSettingFocus(View item, TextView title, TextView extra, String icon, String header, String desc) {
@@ -496,6 +590,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (tvosPickerOverlay.getVisibility() == View.VISIBLE) {
+                closeTvosPicker();
+                return true;
+            }
             if (tilesManagerOverlay.getVisibility() == View.VISIBLE) {
                 closeTilesManager();
                 return true;
@@ -724,26 +822,35 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
+    // --- 1. Адаптер главного Dock (с защитой от сбитых размеров) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        private int getCardWidth() {
+            String sizeMode = prefs.getString("tiles_size", "normal");
+            if (sizeMode.equals("compact")) return 135;
+            if (sizeMode.equals("large")) return 190;
+            return 160;
+        }
+
+        private int getCardHeight() {
+            String sizeMode = prefs.getString("tiles_size", "normal");
+            if (sizeMode.equals("compact")) return 84;
+            if (sizeMode.equals("large")) return 118;
+            return 100;
+        }
+
+        private int getIconSize() {
+            String sizeMode = prefs.getString("tiles_size", "normal");
+            if (sizeMode.equals("compact")) return 46;
+            if (sizeMode.equals("large")) return 66;
+            return 56;
+        }
+
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            String sizeMode = prefs.getString("tiles_size", "normal");
-            int cardW = 160;
-            int cardH = 100;
-            int iconSize = 56;
-            if (sizeMode.equals("compact")) {
-                cardW = 135;
-                cardH = 84;
-                iconSize = 46;
-            } else if (sizeMode.equals("large")) {
-                cardW = 190;
-                cardH = 118;
-                iconSize = 66;
-            }
-
             FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(cardW, cardH);
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(getCardWidth(), getCardHeight());
             lp.setMargins(14, 18, 14, 18);
             card.setLayoutParams(lp);
             card.setFocusable(true);
@@ -752,7 +859,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(getIconSize(), getIconSize(), Gravity.CENTER));
 
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
@@ -768,8 +875,27 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = homeApps.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
+
+            // КРИТИЧНО: строго обновляем размеры у переиспользуемых ячеек
+            int targetW = getCardWidth();
+            int targetH = getCardHeight();
+            ViewGroup.LayoutParams clp = card.getLayoutParams();
+            if (clp.width != targetW || clp.height != targetH) {
+                clp.width = targetW;
+                clp.height = targetH;
+                card.setLayoutParams(clp);
+            }
+
             ImageView iv = (ImageView) card.getChildAt(0);
             TextView tv = (TextView) card.getChildAt(1);
+
+            int isize = getIconSize();
+            FrameLayout.LayoutParams ivLp = (FrameLayout.LayoutParams) iv.getLayoutParams();
+            if (ivLp.width != isize || ivLp.height != isize) {
+                ivLp.width = isize;
+                ivLp.height = isize;
+                iv.setLayoutParams(ivLp);
+            }
 
             if (item.isActionAllApps) {
                 iv.setVisibility(View.GONE);
@@ -795,7 +921,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     v.setBackground(focusBg);
 
                     heroTitle.setText(item.label);
-                    heroBanner.setImageResource(item.bannerRes);
+
+                    // Если тема обоев "dynamic" — меняем постер, иначе держим выбранные обои!
+                    String theme = prefs.getString("wallpaper_theme", "dynamic");
+                    if (theme.equals("dynamic")) {
+                        heroBanner.setImageResource(item.bannerRes);
+                    }
                     animateAmbientGlow(item.glowColor);
                 } else {
                     animateScale(v, 1.0f, 1.0f, 0f);
@@ -828,6 +959,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    // --- 2. Адаптер каталога Drawer ---
     private class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
@@ -903,6 +1035,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    // --- 3. Адаптер «Управление плитками» ---
     private class TilesManagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
@@ -1026,6 +1159,81 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         @Override
         public int getItemCount() {
             return allInstalledApps.size();
+        }
+    }
+
+    // --- 4. Адаптер нативного окна выбора tvOS Picker ---
+    private class PickerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            FrameLayout item = new FrameLayout(parent.getContext());
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, 56
+            );
+            lp.setMargins(0, 5, 0, 5);
+            item.setLayoutParams(lp);
+            item.setFocusable(true);
+            item.setClickable(true);
+            item.setBackgroundResource(R.drawable.settings_item_selector);
+            item.setPadding(20, 0, 20, 0);
+
+            TextView title = new TextView(parent.getContext());
+            title.setTextSize(16);
+            title.setTextColor(Color.WHITE);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            FrameLayout.LayoutParams tLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL
+            );
+            item.addView(title, tLp);
+
+            TextView check = new TextView(parent.getContext());
+            check.setTextSize(18);
+            check.setText("✓");
+            check.setTextColor(0xFF34C759);
+            check.setTypeface(null, android.graphics.Typeface.BOLD);
+            FrameLayout.LayoutParams cLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL
+            );
+            item.addView(check, cLp);
+
+            return new RecyclerView.ViewHolder(item) {};
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            PickerOption opt = currentPickerOptions.get(position);
+            FrameLayout item = (FrameLayout) holder.itemView;
+            TextView title = (TextView) item.getChildAt(0);
+            TextView check = (TextView) item.getChildAt(1);
+
+            title.setText(opt.title);
+            check.setVisibility(opt.isSelected ? View.VISIBLE : View.GONE);
+
+            item.setOnFocusChangeListener((v, hasFocus) -> {
+                resetScreensaverTimer();
+                if (hasFocus) {
+                    animateScale(v, 1.03f, 1.03f, 8f);
+                    title.setTextColor(Color.BLACK);
+                    check.setTextColor(0xFF1B7030);
+                } else {
+                    animateScale(v, 1.0f, 1.0f, 0f);
+                    title.setTextColor(Color.WHITE);
+                    check.setTextColor(0xFF34C759);
+                }
+            });
+
+            item.setOnClickListener(v -> {
+                resetScreensaverTimer();
+                if (currentPickerListener != null) {
+                    currentPickerListener.onSelected(opt);
+                }
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return currentPickerOptions.size();
         }
     }
 

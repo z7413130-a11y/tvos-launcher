@@ -7,7 +7,7 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- 1. Фоновый постер Top Shelf / Заставка -->
+    <!-- 1. Фоновый постер Top Shelf / Заставка / Выбранные обои -->
     <ImageView
         android:id="@+id/hero_banner"
         android:layout_width="match_parent"
@@ -199,12 +199,12 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 7. Панель настроек Apple tvOS (Split-screen Glass Overlay со скроллом) -->
+    <!-- 7. Панель настроек Apple tvOS (Split-screen Glass Overlay) -->
     <FrameLayout
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#F0050508"
+        android:background="#F2050508"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -218,7 +218,7 @@
             android:paddingTop="46dp"
             android:paddingBottom="46dp">
 
-            <!-- Левая колонка: Все 10 пунктов настроек -->
+            <!-- Левая колонка: пункты настроек tvOS -->
             <ScrollView
                 android:layout_width="450dp"
                 android:layout_height="match_parent"
@@ -331,7 +331,7 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 4. Размер плиток -->
+                    <!-- 4. Размер и масштаб плиток -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles_size"
                         android:layout_width="match_parent"
@@ -388,7 +388,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical|end"
-                            android:text="24-часа"
+                            android:text="24-часовой"
                             android:textColor="#88FFFFFF"
                             android:textSize="14sp" />
                     </FrameLayout>
@@ -424,7 +424,7 @@
                             android:textSize="14sp" />
                     </FrameLayout>
 
-                    <!-- 7. Автозапуск при старте -->
+                    <!-- 7. Автозапуск -->
                     <FrameLayout
                         android:id="@+id/setting_item_autostart"
                         android:layout_width="match_parent"
@@ -528,7 +528,6 @@
                             android:textColor="#88FFFFFF"
                             android:textSize="16sp" />
                     </FrameLayout>
-
                 </LinearLayout>
             </ScrollView>
 
@@ -643,7 +642,55 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 9. Полноэкранная заставка Aerial Screensaver -->
+    <!-- 9. Экран выбора опций tvOS (Стеклянное диалоговое окно вместо серого Android) -->
+    <FrameLayout
+        android:id="@+id/tvos_picker_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#E6050508"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="560dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/glass_dock_bg"
+            android:orientation="vertical"
+            android:paddingStart="36dp"
+            android:paddingEnd="36dp"
+            android:paddingTop="32dp"
+            android:paddingBottom="32dp">
+
+            <TextView
+                android:id="@+id/tvos_picker_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Выбор параметра"
+                android:textColor="#FFFFFF"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvos_picker_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Выберите нужное значение и нажмите [Назад] для выхода"
+                android:textColor="#88FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginBottom="20dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/tvos_picker_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="380dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 10. Полноэкранная заставка Aerial Screensaver -->
     <FrameLayout
         android:id="@+id/screensaver_overlay"
         android:layout_width="match_parent"
