@@ -36,13 +36,14 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- ЕДИНАЯ ВЕРХНЯЯ ПЛАШКА (КАПСУЛА) ТОЧЬ-В-ТОЧЬ КАК НА ФОТО -->
+        <!-- ЕДИНАЯ ВЕРХНЯЯ ПЛАШКА (КАПСУЛА) СПРАВА В УГЛУ КАК НА ФОТО -->
         <LinearLayout
             android:id="@+id/top_status_pill"
             android:layout_width="wrap_content"
             android:layout_height="64dp"
-            android:layout_centerHorizontal="true"
+            android:layout_alignParentEnd="true"
             android:layout_marginTop="32dp"
+            android:layout_marginEnd="56dp"
             android:background="@drawable/glass_dock_bg"
             android:orientation="horizontal"
             android:gravity="center_vertical"
@@ -50,22 +51,20 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <!-- Кнопка Пункта управления слева -->
+            <!-- Кнопка Пункта управления слева внутри капсулы -->
             <FrameLayout
                 android:id="@+id/btn_open_control_center"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:focusable="true"
                 android:clickable="true"
                 android:background="@drawable/pill_button_selector">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
                     android:layout_gravity="center"
-                    android:text="🎛"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp" />
+                    android:src="@drawable/ic_control_center" />
             </FrameLayout>
 
             <View
@@ -75,7 +74,7 @@
                 android:layout_marginStart="14dp"
                 android:layout_marginEnd="18dp" />
 
-            <!-- Время и дата в центре плашки -->
+            <!-- Время и день недели/дата -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -112,8 +111,8 @@
             <!-- Кнопка Настроек (шестеренка) справа -->
             <FrameLayout
                 android:id="@+id/btn_launcher_settings"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:focusable="true"
                 android:clickable="true"
                 android:background="@drawable/pill_button_selector">
@@ -814,12 +813,10 @@
                         android:orientation="vertical"
                         android:gravity="center">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⏻"
-                            android:textColor="#FFFFFF"
-                            android:textSize="54sp"
+                        <ImageView
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:src="@drawable/ic_power"
                             android:layout_marginBottom="8dp" />
 
                         <TextView
@@ -851,10 +848,17 @@
                         android:background="@drawable/settings_item_selector"
                         android:paddingHorizontal="20dp">
 
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center_vertical|start"
+                            android:src="@drawable/ic_wifi" />
+
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical|start"
+                            android:layout_marginStart="36dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -901,12 +905,11 @@
                             android:orientation="horizontal"
                             android:gravity="center_vertical">
 
-                            <TextView
-                                android:id="@+id/cc_vol_icon"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="🔊"
-                                android:textSize="22sp"
+                            <ImageView
+                                android:id="@+id/cc_vol_icon_img"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_volume"
                                 android:layout_marginEnd="14dp" />
 
                             <!-- Имитация слайдера громкости tvOS -->
@@ -951,10 +954,17 @@
                     android:background="@drawable/settings_item_selector"
                     android:paddingHorizontal="20dp">
 
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical|start"
+                        android:src="@drawable/ic_screensaver" />
+
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical|start"
+                        android:layout_marginStart="36dp"
                         android:orientation="vertical">
 
                         <TextView
@@ -987,10 +997,17 @@
                     android:background="@drawable/settings_item_selector"
                     android:paddingHorizontal="20dp">
 
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center_vertical|start"
+                        android:src="@drawable/ic_timer" />
+
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_vertical|start"
+                        android:layout_marginStart="36dp"
                         android:orientation="vertical">
 
                         <TextView
@@ -1030,10 +1047,17 @@
                 android:background="@drawable/settings_item_selector"
                 android:paddingHorizontal="20dp">
 
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:src="@drawable/ic_sleep" />
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="36dp"
                     android:orientation="vertical">
 
                     <TextView
