@@ -95,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private Runnable sleepTimerRunnable;
     private long backButtonDownTime = 0L;
     private boolean isBackLongPressed = false;
+    private long controlCenterOpenTime = 0L;
 
     // Заставка Screensaver
     private FrameLayout screensaverOverlay;
@@ -454,6 +455,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void openControlCenter() {
         if (isJiggleMode) stopJiggleMode();
         updateControlCenterUi();
+        controlCenterOpenTime = SystemClock.uptimeMillis();
 
         controlCenterOverlay.setVisibility(View.VISIBLE);
         controlCenterOverlay.setAlpha(0f);
@@ -538,7 +540,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
-        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
@@ -548,7 +549,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
-        // 2. Звуковые эффекты
         FrameLayout itemSound = findViewById(R.id.setting_item_sound);
         TextView tvSound = findViewById(R.id.tv_setting_sound_title);
         itemSound.setOnClickListener(v -> {
@@ -557,7 +557,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemSound, tvSound, tvSoundVal, "🔊", "Звуки tvOS", "Приятные стеклянные щелчки при листании пультом и мягкий звук открытия программ в стиле Apple TV.");
 
-        // 3. Эмбиент
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
         itemAmbient.setOnClickListener(v -> {
@@ -566,7 +565,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
-        // 4. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
         itemSize.setOnClickListener(v -> {
@@ -575,7 +573,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
-        // 5. Часы
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
         itemClock.setOnClickListener(v -> {
@@ -584,7 +581,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и дата", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
-        // 6. Заставка
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
         itemSaver.setOnClickListener(v -> {
@@ -593,7 +589,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
-        // 7. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
         itemAutostart.setOnClickListener(v -> {
@@ -602,7 +597,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
-        // 8. Сброс
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
@@ -613,7 +607,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
-        // 9. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
@@ -624,7 +617,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
-        // 10. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
@@ -871,6 +863,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         // 1. Управление внутри Центра управления
         if (controlCenterOverlay.getVisibility() == View.VISIBLE) {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (SystemClock.uptimeMillis() - controlCenterOpenTime > 400L) {
+                    soundManager.playClick();
+                    closeControlCenter();
+                }
+                return true;
+            }
+
             View focused = getCurrentFocus();
             if (focused != null && focused.getId() == R.id.cc_card_volume) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
@@ -889,15 +889,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     return true;
                 }
             }
-
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
-                soundManager.playClick();
-                closeControlCenter();
-                return true;
-            }
         }
 
-        // 2. Отслеживание долгого зажатия кнопки "Назад" (0.85 сек) для вызова Центра управления
+        // 2. Долгое зажатие "Назад" (0.85 сек) для вызова Центра управления
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.getRepeatCount() == 0) {
                 backButtonDownTime = SystemClock.uptimeMillis();
@@ -910,7 +904,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         }
 
-        // Вызов Центра управления кнопкой ТВ/GUIDE если есть на пульте
         if (keyCode == KeyEvent.KEYCODE_TV || keyCode == KeyEvent.KEYCODE_GUIDE) {
             soundManager.playClick();
             openControlCenter();
@@ -976,9 +969,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && isBackLongPressed) {
-            isBackLongPressed = false;
-            return true;
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (isBackLongPressed) {
+                isBackLongPressed = false;
+                return true;
+            }
         }
         return super.onKeyUp(keyCode, event);
     }
