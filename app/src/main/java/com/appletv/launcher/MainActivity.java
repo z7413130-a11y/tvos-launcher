@@ -11,9 +11,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -43,7 +44,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import org.json.JSONArray;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -54,19 +54,15 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements PackageReceiver.PackageListener {
 
-    private static final int REQUEST_CODE_PICK_WALLPAPER = 1010;
-
     private ImageView heroBanner;
     private View ambientGlow;
     private TextView heroTitle;
     private RelativeLayout homeContentContainer;
-    private FrameLayout glassDockContainer;
     private RecyclerView dockRecycler;
     private FrameLayout btnSettings;
     private TextClock mainTextClock;
     private TextView tvDateDisplay;
 
-    // Стеклянные оверлеи
     private FrameLayout appDrawerOverlay;
     private RecyclerView drawerRecycler;
 
@@ -74,7 +70,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
-    // Заставка Screensaver
     private FrameLayout screensaverOverlay;
     private ImageView screensaverBg;
     private TextClock saverTextClock;
@@ -82,25 +77,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private final Handler idleHandler = new Handler(Looper.getMainLooper());
     private Runnable idleRunnable;
 
-    // Таймер смены стоковых обоев Apple Aerial (каждые 5 минут)
-    private final Handler aerialCycleHandler = new Handler(Looper.getMainLooper());
-    private Runnable aerialCycleRunnable;
-    private int currentAerialIndex = 0;
-    private final int[] aerialWallpapers = new int[]{
-            R.drawable.bg_poster_studio,
-            R.drawable.bg_poster_space,
-            R.drawable.bg_poster_ocean,
-            R.drawable.bg_poster_city,
-            R.drawable.bg_poster_minimal
-    };
-
-    // Превью настроек
     private TextView settingsPreviewIcon;
     private TextView settingsPreviewTitle;
     private TextView settingsPreviewDesc;
 
-    // Значения настроек
-    private TextView tvWallpapersVal;
     private TextView tvAmbientVal;
     private TextView tvSizeVal;
     private TextView tvClockVal;
@@ -124,17 +104,15 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public int[] colors;
         public int glowColor;
         public int bannerRes;
-        public String badgeText;
         public boolean isActionAllApps = false;
 
-        public AppItem(String packageName, String label, Drawable icon, int[] colors, int glowColor, int bannerRes, String badgeText) {
+        public AppItem(String packageName, String label, Drawable icon, int[] colors, int glowColor, int bannerRes) {
             this.packageName = packageName;
             this.label = label;
             this.icon = icon;
             this.colors = colors;
             this.glowColor = glowColor;
             this.bannerRes = bannerRes;
-            this.badgeText = badgeText;
         }
 
         public AppItem(String label, int[] colors, boolean isActionAllApps) {
@@ -174,7 +152,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         ambientGlow = findViewById(R.id.ambient_glow);
         heroTitle = findViewById(R.id.hero_title);
         homeContentContainer = findViewById(R.id.home_content_container);
-        glassDockContainer = findViewById(R.id.glass_dock_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         mainTextClock = findViewById(R.id.main_text_clock);
@@ -196,7 +173,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         settingsPreviewTitle = findViewById(R.id.settings_preview_title);
         settingsPreviewDesc = findViewById(R.id.settings_preview_desc);
 
-        tvWallpapersVal = findViewById(R.id.tv_setting_wallpapers_val);
         tvAmbientVal = findViewById(R.id.tv_setting_ambient_val);
         tvSizeVal = findViewById(R.id.tv_setting_size_val);
         tvClockVal = findViewById(R.id.tv_setting_clock_val);
@@ -219,7 +195,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         updateDateAndClockUi();
         applyPreferencesUi();
         setupScreensaverTimer();
-        setupAerialCycle();
 
         loadApps();
         checkAutostart();
@@ -253,45 +228,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void applyPreferencesUi() {
-        String wallpaper = prefs.getString("wallpaper_theme", "dynamic");
-        switch (wallpaper) {
-            case "custom":
-                tvWallpapersVal.setText("Пользовательские (из файла)");
-                loadCustomWallpaper();
-                break;
-            case "aerial_auto":
-                tvWallpapersVal.setText("Стоковые Apple TV (каждые 5 мин)");
-                heroBanner.setImageResource(aerialWallpapers[currentAerialIndex]);
-                break;
-            case "space":
-                tvWallpapersVal.setText("Космос (Aerial)");
-                heroBanner.setImageResource(R.drawable.bg_poster_space);
-                break;
-            case "city":
-                tvWallpapersVal.setText("Ночной город");
-                heroBanner.setImageResource(R.drawable.bg_poster_city);
-                break;
-            case "ocean":
-                tvWallpapersVal.setText("Океан (Aerial)");
-                heroBanner.setImageResource(R.drawable.bg_poster_ocean);
-                break;
-            case "minimal":
-                tvWallpapersVal.setText("Тёмный графит");
-                heroBanner.setImageResource(R.drawable.bg_poster_minimal);
-                break;
-            default:
-                tvWallpapersVal.setText("Динамические");
-                break;
-        }
-
-        int ambientLevel = prefs.getInt("ambient_level", 45);
+        int ambientLevel = prefs.getInt("ambient_level", 55);
         if (ambientLevel == 0) {
             tvAmbientVal.setText("Выключена");
             ambientGlow.setVisibility(View.GONE);
         } else {
             ambientGlow.setVisibility(View.VISIBLE);
             ambientGlow.setAlpha(ambientLevel / 100f);
-            tvAmbientVal.setText(ambientLevel == 25 ? "Мягкая (25%)" : (ambientLevel == 45 ? "Стандарт (45%)" : "Яркая (75%)"));
+            tvAmbientVal.setText(ambientLevel == 30 ? "Мягкая (30%)" : (ambientLevel == 55 ? "Стандарт (55%)" : "Яркая (80%)"));
         }
 
         String sizeMode = prefs.getString("tiles_size", "normal");
@@ -308,45 +252,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         } else {
             tvAutostartVal.setText(prefs.getString("autostart_label", "Приложение"));
         }
-    }
-
-    private void loadCustomWallpaper() {
-        String uriStr = prefs.getString("custom_wallpaper_uri", null);
-        if (uriStr != null) {
-            try {
-                Uri uri = Uri.parse(uriStr);
-                InputStream is = getContentResolver().openInputStream(uri);
-                Bitmap bitmap = BitmapFactory.decodeStream(is);
-                if (bitmap != null) {
-                    heroBanner.setImageBitmap(bitmap);
-                    return;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        heroBanner.setImageResource(R.drawable.bg_poster_studio);
-    }
-
-    private void setupAerialCycle() {
-        if (aerialCycleRunnable != null) {
-            aerialCycleHandler.removeCallbacks(aerialCycleRunnable);
-        }
-        aerialCycleRunnable = new Runnable() {
-            @Override
-            public void run() {
-                String theme = prefs.getString("wallpaper_theme", "dynamic");
-                if ("aerial_auto".equals(theme)) {
-                    currentAerialIndex = (currentAerialIndex + 1) % aerialWallpapers.length;
-                    heroBanner.animate().alpha(0f).setDuration(400).withEndAction(() -> {
-                        heroBanner.setImageResource(aerialWallpapers[currentAerialIndex]);
-                        heroBanner.animate().alpha(1f).setDuration(400).start();
-                    }).start();
-                }
-                aerialCycleHandler.postDelayed(this, 5 * 60 * 1000L); // каждые 5 минут
-            }
-        };
-        aerialCycleHandler.postDelayed(aerialCycleRunnable, 5 * 60 * 1000L);
     }
 
     private void checkAutostart() {
@@ -410,50 +315,37 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
-        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
         itemTiles.setOnClickListener(v -> openTilesManager());
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
-        // 2. Внешний вид и обои
-        FrameLayout itemWallpapers = findViewById(R.id.setting_item_wallpapers);
-        TextView tvWallpapers = findViewById(R.id.tv_setting_wallpapers_title);
-        itemWallpapers.setOnClickListener(v -> showWallpaperPickerTvos());
-        setupSettingFocus(itemWallpapers, tvWallpapers, tvWallpapersVal, "🖼", "Обои и фон", "Выбор динамических обоев, автоматической смены стоковых обоев Apple Aerial раз в 5 минут или загрузка своего фото из файлов.");
-
-        // 3. Эмбиент
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
         itemAmbient.setOnClickListener(v -> showAmbientPickerTvos());
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
-        // 4. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
         itemSize.setOnClickListener(v -> showTileSizePickerTvos());
         setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
-        // 5. Часы
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
         itemClock.setOnClickListener(v -> showClockPickerTvos());
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и дата", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
-        // 6. Заставка
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
         itemSaver.setOnClickListener(v -> showScreensaverPickerTvos());
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
-        // 7. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
         itemAutostart.setOnClickListener(v -> showAutostartPickerTvos());
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
-        // 8. Сброс
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
@@ -463,7 +355,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
-        // 9. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
@@ -473,7 +364,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
-        // 10. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
@@ -483,58 +373,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             } catch (Exception ignored) {}
         });
         setupSettingFocus(itemSys, tvSys, arrSys, "⚙", "Android TV", "Переход в стандартные системные параметры телевизора.");
-    }
-
-    private void showWallpaperPickerTvos() {
-        String current = prefs.getString("wallpaper_theme", "dynamic");
-        List<PickerOption> list = new ArrayList<>();
-        list.add(new PickerOption("Динамические (под активную плитку)", "dynamic", current.equals("dynamic")));
-        list.add(new PickerOption("Выбрать из файлов (своё изображение)", "pick_file", false));
-        list.add(new PickerOption("Стоковые Apple TV (каждые 5 мин)", "aerial_auto", current.equals("aerial_auto")));
-        list.add(new PickerOption("Космос (Apple Aerial)", "space", current.equals("space")));
-        list.add(new PickerOption("Шотландские озёра (Aerial)", "ocean", current.equals("ocean")));
-        list.add(new PickerOption("Ночной город", "city", current.equals("city")));
-        list.add(new PickerOption("Тёмный графит (Minimal)", "minimal", current.equals("minimal")));
-
-        openTvosPickerDialog("Внешний вид и Обои", list, option -> {
-            if ("pick_file".equals(option.key)) {
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/*");
-                try {
-                    startActivityForResult(intent, REQUEST_CODE_PICK_WALLPAPER);
-                } catch (Exception e) {
-                    Toast.makeText(this, "Файловый менеджер не найден", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                prefs.edit().putString("wallpaper_theme", option.key).apply();
-                applyPreferencesUi();
-                loadApps();
-            }
-        });
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_PICK_WALLPAPER && resultCode == RESULT_OK && data != null) {
-            Uri selectedUri = data.getData();
-            if (selectedUri != null) {
-                try {
-                    getContentResolver().takePersistableUriPermission(
-                            selectedUri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    );
-                } catch (Exception ignored) {}
-                prefs.edit()
-                        .putString("wallpaper_theme", "custom")
-                        .putString("custom_wallpaper_uri", selectedUri.toString())
-                        .apply();
-                applyPreferencesUi();
-                loadApps();
-                Toast.makeText(this, "Обои успешно установлены", Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 
     private void openTvosPickerDialog(String title, List<PickerOption> options, OnOptionSelectedListener listener) {
@@ -571,12 +409,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void showAmbientPickerTvos() {
-        int current = prefs.getInt("ambient_level", 45);
+        int current = prefs.getInt("ambient_level", 55);
         List<PickerOption> list = new ArrayList<>();
         list.add(new PickerOption("Выключить подсветку", "0", current == 0));
-        list.add(new PickerOption("Мягкая (25%)", "25", current == 25));
-        list.add(new PickerOption("Стандартная (45%)", "45", current == 45));
-        list.add(new PickerOption("Яркая неоновая (75%)", "75", current == 75));
+        list.add(new PickerOption("Мягкая (30%)", "30", current == 30));
+        list.add(new PickerOption("Стандартная (55%)", "55", current == 55));
+        list.add(new PickerOption("Яркая неоновая (80%)", "80", current == 80));
 
         openTvosPickerDialog("Эмбиент-подсветка", list, option -> {
             prefs.edit().putInt("ambient_level", Integer.parseInt(option.key)).apply();
@@ -669,7 +507,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         super.onDestroy();
         PackageReceiver.listener = null;
         if (idleRunnable != null) idleHandler.removeCallbacks(idleRunnable);
-        if (aerialCycleRunnable != null) aerialCycleHandler.removeCallbacks(aerialCycleRunnable);
     }
 
     @Override
@@ -704,7 +541,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void openDrawer() {
-        // Полностью прячем домашний экран, чтобы ничего не двоилось и не накладывалось
         homeContentContainer.setVisibility(View.GONE);
 
         appDrawerOverlay.setVisibility(View.VISIBLE);
@@ -722,7 +558,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void openSettings() {
-        // Полностью прячем домашний экран, чтобы под меню настроек ничего не торчало
         homeContentContainer.setVisibility(View.GONE);
 
         applyPreferencesUi();
@@ -777,12 +612,11 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             String label = ri.loadLabel(pm).toString();
             Drawable icon = ri.loadIcon(pm);
-            int[] colors = getThemeColorsForPackage(pkg);
-            int glowColor = getGlowColorForPackage(pkg);
+            int[] colors = getThemeColorsForPackage(pkg, icon);
+            int glowColor = getGlowColorForPackage(pkg, icon);
             int banner = getPosterForPackage(pkg);
-            String badge = getBadgeForPackage(pkg);
 
-            AppItem item = new AppItem(pkg, label, icon, colors, glowColor, banner, badge);
+            AppItem item = new AppItem(pkg, label, icon, colors, glowColor, banner);
             allInstalledApps.add(item);
 
             if (!hiddenApps.contains(pkg)) {
@@ -807,7 +641,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         }
 
-        homeApps.add(new AppItem("Все программы", new int[]{0xFF242430, 0xFF121218}, true));
+        homeApps.add(new AppItem("Все приложения", new int[]{0xFF242430, 0xFF121218}, true));
 
         dockAdapter.notifyDataSetChanged();
         drawerAdapter.notifyDataSetChanged();
@@ -815,7 +649,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void animateAmbientGlow(int targetColor) {
-        if (prefs.getInt("ambient_level", 45) == 0) return;
+        if (prefs.getInt("ambient_level", 55) == 0) return;
 
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentAmbientColor, targetColor);
         colorAnim.setDuration(260);
@@ -894,20 +728,58 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         prefs.edit().putString("pinned_order", arr.toString()).apply();
     }
 
-    // Сочные градиенты в стиле tvOS
-    private int[] getThemeColorsForPackage(String pkg) {
+    private int extractDominantColor(Drawable drawable) {
+        if (drawable == null) return 0xFF353545;
+        try {
+            Bitmap bitmap;
+            if (drawable instanceof BitmapDrawable) {
+                bitmap = ((BitmapDrawable) drawable).getBitmap();
+            } else {
+                bitmap = Bitmap.createBitmap(
+                        Math.max(1, drawable.getIntrinsicWidth()),
+                        Math.max(1, drawable.getIntrinsicHeight()),
+                        Bitmap.Config.ARGB_8888
+                );
+                Canvas canvas = new Canvas(bitmap);
+                drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                drawable.draw(canvas);
+            }
+            if (bitmap != null) {
+                Bitmap small = Bitmap.createScaledBitmap(bitmap, 16, 16, false);
+                long r = 0, g = 0, b = 0;
+                int count = 0;
+                for (int x = 2; x < 14; x++) {
+                    for (int y = 2; y < 14; y++) {
+                        int pixel = small.getPixel(x, y);
+                        if (Color.alpha(pixel) > 120) {
+                            r += Color.red(pixel);
+                            g += Color.green(pixel);
+                            b += Color.blue(pixel);
+                            count++;
+                        }
+                    }
+                }
+                if (count > 0) {
+                    return Color.rgb((int)(r / count), (int)(g / count), (int)(b / count));
+                }
+            }
+        } catch (Exception ignored) {}
+        return 0xFF2A2E3D;
+    }
+
+    private int[] getThemeColorsForPackage(String pkg, Drawable icon) {
         String p = pkg.toLowerCase();
         if (p.contains("youtube") || p.contains("ytplayer")) {
-            return new int[]{0xFFFF1438, 0xFF7A0012}; // Рубиновый градиент YouTube
+            return new int[]{0xFFFF1438, 0xFF7A0012};
         }
         if (p.contains("kinopoisk")) {
-            return new int[]{0xFFFF6600, 0xFF8A1E00}; // Фирменный Кинопоиск
+            return new int[]{0xFFFF6600, 0xFF8A1E00};
         }
         if (p.contains("vk") || p.contains("vigo")) {
-            return new int[]{0xFF0077FF, 0xFF003882}; // Синий градиент VK
+            return new int[]{0xFF0077FF, 0xFF003882};
         }
         if (p.contains("zona")) {
-            return new int[]{0xFF00E676, 0xFF005E28}; // Изумрудный Zona
+            return new int[]{0xFF00E676, 0xFF005E28};
         }
         if (p.contains("settings")) {
             return new int[]{0xFF64748B, 0xFF1E293B};
@@ -915,43 +787,38 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         if (p.contains("file") || p.contains("manager")) {
             return new int[]{0xFF38BDF8, 0xFF0369A1};
         }
-        return new int[]{0xFF242634, 0xFF10121A};
+
+        int dom = extractDominantColor(icon);
+        int darker = Color.rgb(
+                (int)(Color.red(dom) * 0.45f),
+                (int)(Color.green(dom) * 0.45f),
+                (int)(Color.blue(dom) * 0.45f)
+        );
+        return new int[]{dom, darker};
     }
 
-    private String getBadgeForPackage(String pkg) {
+    private int getGlowColorForPackage(String pkg, Drawable icon) {
         String p = pkg.toLowerCase();
-        if (p.contains("youtube") || p.contains("ytplayer")) return "▶";
-        if (p.contains("kinopoisk")) return "КП";
-        if (p.contains("vk")) return "VK";
-        if (p.contains("zona")) return "ZONA";
-        return null;
-    }
+        if (p.contains("youtube") || p.contains("ytplayer")) return 0xB3FF1438;
+        if (p.contains("kinopoisk")) return 0xB3FF6600;
+        if (p.contains("vk") || p.contains("vigo")) return 0xB30077FF;
+        if (p.contains("zona")) return 0xB300E676;
+        if (p.contains("settings")) return 0x9964748B;
+        if (p.contains("file") || p.contains("manager")) return 0xB338BDF8;
 
-    private int getGlowColorForPackage(String pkg) {
-        String p = pkg.toLowerCase();
-        if (p.contains("youtube")) return 0x99FF1438;
-        if (p.contains("kinopoisk")) return 0x99FF6600;
-        if (p.contains("vk")) return 0x990077FF;
-        if (p.contains("zona")) return 0x9900E676;
-        return 0x55353545;
+        int dom = extractDominantColor(icon);
+        return Color.argb(160, Color.red(dom), Color.green(dom), Color.blue(dom));
     }
 
     private int getPosterForPackage(String pkg) {
-        String wallpaper = prefs.getString("wallpaper_theme", "dynamic");
-        if (wallpaper.equals("space")) return R.drawable.bg_poster_space;
-        if (wallpaper.equals("city")) return R.drawable.bg_poster_city;
-        if (wallpaper.equals("ocean")) return R.drawable.bg_poster_ocean;
-        if (wallpaper.equals("minimal")) return R.drawable.bg_poster_minimal;
-
         String p = pkg.toLowerCase();
         if (p.contains("kinopoisk")) return R.drawable.bg_poster_kinopoisk;
-        if (p.contains("youtube")) return R.drawable.bg_poster_youtube;
+        if (p.contains("youtube") || p.contains("ytplayer")) return R.drawable.bg_poster_youtube;
         if (p.contains("zona")) return R.drawable.bg_poster_zona;
-        if (p.contains("vk")) return R.drawable.bg_poster_vk;
+        if (p.contains("vk") || p.contains("vigo")) return R.drawable.bg_poster_vk;
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (АККУРАТНЫЕ КАРТОЧКИ TVOS 140x82dp) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -978,7 +845,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             card.setFocusable(true);
             card.setClickable(true);
 
-            // Аппаратное скругление 18dp
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -987,15 +853,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             });
             card.setClipToOutline(true);
 
-            // Иконка
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(42), dpToPx(42), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
 
-            // Текстовая подпись
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
-            tv.setTextSize(13);
+            tv.setTextSize(14);
             tv.setTypeface(null, android.graphics.Typeface.BOLD);
             tv.setGravity(Gravity.CENTER);
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -1024,10 +888,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 iv.setVisibility(View.GONE);
                 tv.setVisibility(View.VISIBLE);
                 tv.setText("⊞\nВсе");
-            } else if (item.badgeText != null) {
-                iv.setVisibility(View.GONE);
-                tv.setVisibility(View.VISIBLE);
-                tv.setText(item.badgeText);
             } else {
                 tv.setVisibility(View.GONE);
                 iv.setVisibility(View.VISIBLE);
@@ -1048,11 +908,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     v.setBackground(focusBg);
 
                     heroTitle.setText(item.label);
-
-                    String theme = prefs.getString("wallpaper_theme", "dynamic");
-                    if ("dynamic".equals(theme)) {
-                        heroBanner.setImageResource(item.bannerRes);
-                    }
+                    heroBanner.setImageResource(item.bannerRes);
                     animateAmbientGlow(item.glowColor);
                 } else {
                     animateScale(v, 1.0f, 1.0f, 0f);
@@ -1085,7 +941,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ (АККУРАТНЫЕ ПЛИТКИ 6 В РЯД) ---
     private class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
@@ -1168,7 +1023,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    // --- 3. АДАПТЕР УПРАВЛЕНИЯ ПЛИТКАМИ ---
     private class TilesManagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
@@ -1295,7 +1149,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    // --- 4. АДАПТЕР ОКНА ВЫБОРА TVOS PICKER ---
     private class PickerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final List<PickerOption> options;
         private final OnOptionSelectedListener listener;

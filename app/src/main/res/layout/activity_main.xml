@@ -7,7 +7,6 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Фоновое изображение (Top Shelf / Aerial обои) -->
     <ImageView
         android:id="@+id/hero_banner"
         android:layout_width="match_parent"
@@ -15,20 +14,17 @@
         android:scaleType="centerCrop"
         android:src="@drawable/bg_poster_studio" />
 
-    <!-- Динамическая фоновая подсветка -->
     <View
         android:id="@+id/ambient_glow"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="0.45" />
+        android:alpha="0.55" />
 
-    <!-- Градиент глубины tvOS снизу -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/shelf_gradient_overlay" />
 
-    <!-- 1. ГЛАВНЫЙ ЭКРАН (полностью скрывается при переходе в Настройки или Все приложения) -->
     <RelativeLayout
         android:id="@+id/home_content_container"
         android:layout_width="match_parent"
@@ -36,7 +32,6 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Верхний бар -->
         <LinearLayout
             android:id="@+id/top_bar"
             android:layout_width="match_parent"
@@ -58,7 +53,7 @@
                 android:textSize="36sp"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
-                android:shadowColor="#99000000"
+                android:shadowColor="#CC000000"
                 android:shadowDx="0"
                 android:shadowDy="4"
                 android:shadowRadius="14" />
@@ -110,7 +105,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Нижний стеклянный Dock (аккуратный размер карточек) -->
         <LinearLayout
             android:id="@+id/dock_layout_wrapper"
             android:layout_width="match_parent"
@@ -143,7 +137,6 @@
                     android:clipToPadding="false" />
             </FrameLayout>
 
-            <!-- Полоски второй полки под доком -->
             <LinearLayout
                 android:id="@+id/peeking_shelf"
                 android:layout_width="wrap_content"
@@ -161,7 +154,6 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- 2. ПОЛНОЭКРАННЫЙ КАТАЛОГ APP DRAWER -->
     <FrameLayout
         android:id="@+id/app_drawer_overlay"
         android:layout_width="match_parent"
@@ -213,7 +205,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 3. ПАНЕЛЬ НАСТРОЕК APPLE TV -->
     <FrameLayout
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
@@ -232,7 +223,6 @@
             android:paddingTop="40dp"
             android:paddingBottom="40dp">
 
-            <!-- Левая колонка со скроллом -->
             <ScrollView
                 android:id="@+id/settings_scroll_view"
                 android:layout_width="440dp"
@@ -254,7 +244,6 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="20dp" />
 
-                    <!-- 1. Плитки -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles"
                         android:layout_width="match_parent"
@@ -287,40 +276,6 @@
                             android:textSize="20sp" />
                     </FrameLayout>
 
-                    <!-- 2. Обои -->
-                    <FrameLayout
-                        android:id="@+id/setting_item_wallpapers"
-                        android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginBottom="8dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:nextFocusLeft="@id/setting_item_wallpapers"
-                        android:nextFocusRight="@id/setting_item_wallpapers"
-                        android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="18dp">
-
-                        <TextView
-                            android:id="@+id/tv_setting_wallpapers_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="Внешний вид и обои"
-                            android:textColor="#FFFFFF"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_setting_wallpapers_val"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|end"
-                            android:text="Динамические"
-                            android:textColor="#88FFFFFF"
-                            android:textSize="13sp" />
-                    </FrameLayout>
-
-                    <!-- 3. Эмбиент -->
                     <FrameLayout
                         android:id="@+id/setting_item_ambient"
                         android:layout_width="match_parent"
@@ -348,12 +303,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical|end"
-                            android:text="Стандарт (45%)"
+                            android:text="Стандарт (55%)"
                             android:textColor="#88FFFFFF"
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 4. Размер плиток -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles_size"
                         android:layout_width="match_parent"
@@ -386,7 +340,6 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 5. Часы -->
                     <FrameLayout
                         android:id="@+id/setting_item_clock"
                         android:layout_width="match_parent"
@@ -419,7 +372,6 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 6. Заставка -->
                     <FrameLayout
                         android:id="@+id/setting_item_screensaver"
                         android:layout_width="match_parent"
@@ -452,7 +404,6 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 7. Автозапуск -->
                     <FrameLayout
                         android:id="@+id/setting_item_autostart"
                         android:layout_width="match_parent"
@@ -485,7 +436,6 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 8. Сброс порядка -->
                     <FrameLayout
                         android:id="@+id/setting_item_reset_order"
                         android:layout_width="match_parent"
@@ -509,7 +459,6 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- 9. Восстановить -->
                     <FrameLayout
                         android:id="@+id/setting_item_restore_hidden"
                         android:layout_width="match_parent"
@@ -533,7 +482,6 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- 10. Системные настройки -->
                     <FrameLayout
                         android:id="@+id/setting_item_system"
                         android:layout_width="match_parent"
@@ -567,7 +515,6 @@
                 </LinearLayout>
             </ScrollView>
 
-            <!-- Правая колонка с описанием раздела -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -606,7 +553,7 @@
                     android:id="@+id/settings_preview_desc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Выберите раздел для детальной настройки интерфейса, внешнего вида и эффектов."
+                    android:text="Выберите раздел для детальной настройки интерфейса и эффектов."
                     android:textColor="#99FFFFFF"
                     android:textSize="15sp"
                     android:lineSpacingExtra="3dp" />
@@ -614,7 +561,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 4. ЭКРАН УПРАВЛЕНИЯ ПЛИТКАМИ -->
     <FrameLayout
         android:id="@+id/tiles_manager_overlay"
         android:layout_width="match_parent"
@@ -680,7 +626,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 5. ЗАСТАВКА SCREENSAVER -->
     <FrameLayout
         android:id="@+id/screensaver_overlay"
         android:layout_width="match_parent"
