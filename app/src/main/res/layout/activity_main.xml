@@ -7,6 +7,7 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
+    <!-- 1. Фоновый постер Top Shelf -->
     <ImageView
         android:id="@+id/hero_banner"
         android:layout_width="match_parent"
@@ -14,17 +15,20 @@
         android:scaleType="centerCrop"
         android:src="@drawable/bg_poster_studio" />
 
+    <!-- 2. Динамическая подсветка Ambient Glow -->
     <View
         android:id="@+id/ambient_glow"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.55" />
 
+    <!-- 3. Градиент глубины tvOS снизу -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/shelf_gradient_overlay" />
 
+    <!-- ГЛАВНЫЙ ЭКРАН -->
     <RelativeLayout
         android:id="@+id/home_content_container"
         android:layout_width="match_parent"
@@ -32,6 +36,7 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
+        <!-- Верхний бар -->
         <LinearLayout
             android:id="@+id/top_bar"
             android:layout_width="match_parent"
@@ -57,6 +62,50 @@
                 android:shadowDx="0"
                 android:shadowDy="4"
                 android:shadowRadius="14" />
+
+            <!-- Виджет погоды tvOS -->
+            <LinearLayout
+                android:id="@+id/weather_widget_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginEnd="28dp">
+
+                <TextView
+                    android:id="@+id/tv_weather_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⛅"
+                    android:textSize="22sp"
+                    android:layout_marginEnd="6dp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="start">
+
+                    <TextView
+                        android:id="@+id/tv_weather_temp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="--°"
+                        android:textColor="#EEFFFFFF"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/tv_weather_city"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Погода..."
+                        android:textColor="#88FFFFFF"
+                        android:textSize="11sp"
+                        android:fontFamily="sans-serif" />
+                </LinearLayout>
+            </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/btn_launcher_settings"
@@ -105,6 +154,7 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Нижний парящий Dock tvOS -->
         <LinearLayout
             android:id="@+id/dock_layout_wrapper"
             android:layout_width="match_parent"
@@ -137,6 +187,7 @@
                     android:clipToPadding="false" />
             </FrameLayout>
 
+            <!-- Линии нижней полки tvOS -->
             <LinearLayout
                 android:id="@+id/peeking_shelf"
                 android:layout_width="wrap_content"
@@ -154,6 +205,7 @@
         </LinearLayout>
     </RelativeLayout>
 
+    <!-- КАТАЛОГ ВСЕХ ПРИЛОЖЕНИЙ -->
     <FrameLayout
         android:id="@+id/app_drawer_overlay"
         android:layout_width="match_parent"
@@ -205,6 +257,7 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- ПАНЕЛЬ НАСТРОЕК -->
     <FrameLayout
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
@@ -244,6 +297,7 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="20dp" />
 
+                    <!-- 1. Плитки -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles"
                         android:layout_width="match_parent"
@@ -276,6 +330,40 @@
                             android:textSize="20sp" />
                     </FrameLayout>
 
+                    <!-- 2. Погода -->
+                    <FrameLayout
+                        android:id="@+id/setting_item_weather"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginBottom="8dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:nextFocusLeft="@id/setting_item_weather"
+                        android:nextFocusRight="@id/setting_item_weather"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="18dp">
+
+                        <TextView
+                            android:id="@+id/tv_setting_weather_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|start"
+                            android:text="Город и погода"
+                            android:textColor="#FFFFFF"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_setting_weather_val"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="Автоопределение"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="13sp" />
+                    </FrameLayout>
+
+                    <!-- 3. Эмбиент -->
                     <FrameLayout
                         android:id="@+id/setting_item_ambient"
                         android:layout_width="match_parent"
@@ -308,6 +396,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
+                    <!-- 4. Размер плиток -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles_size"
                         android:layout_width="match_parent"
@@ -340,6 +429,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
+                    <!-- 5. Часы -->
                     <FrameLayout
                         android:id="@+id/setting_item_clock"
                         android:layout_width="match_parent"
@@ -357,7 +447,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical|start"
-                            android:text="Часы и верхний бар"
+                            android:text="Часы и дата"
                             android:textColor="#FFFFFF"
                             android:textSize="15sp"
                             android:textStyle="bold" />
@@ -372,6 +462,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
+                    <!-- 6. Заставка -->
                     <FrameLayout
                         android:id="@+id/setting_item_screensaver"
                         android:layout_width="match_parent"
@@ -404,6 +495,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
+                    <!-- 7. Автозапуск -->
                     <FrameLayout
                         android:id="@+id/setting_item_autostart"
                         android:layout_width="match_parent"
@@ -436,6 +528,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
+                    <!-- 8. Сброс порядка -->
                     <FrameLayout
                         android:id="@+id/setting_item_reset_order"
                         android:layout_width="match_parent"
@@ -459,6 +552,7 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
+                    <!-- 9. Восстановить -->
                     <FrameLayout
                         android:id="@+id/setting_item_restore_hidden"
                         android:layout_width="match_parent"
@@ -482,6 +576,7 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
+                    <!-- 10. Параметры Android TV -->
                     <FrameLayout
                         android:id="@+id/setting_item_system"
                         android:layout_width="match_parent"
@@ -561,6 +656,7 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- ЭКРАН УПРАВЛЕНИЯ ПЛИТКАМИ -->
     <FrameLayout
         android:id="@+id/tiles_manager_overlay"
         android:layout_width="match_parent"
@@ -626,6 +722,7 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- ЗАСТАВКА SCREENSAVER -->
     <FrameLayout
         android:id="@+id/screensaver_overlay"
         android:layout_width="match_parent"
