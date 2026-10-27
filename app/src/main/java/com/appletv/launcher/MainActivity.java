@@ -64,13 +64,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private TextView heroTitle;
     private RelativeLayout homeContentContainer;
     private RecyclerView dockRecycler;
+    private RecyclerView mainGridRecycler;
     private FrameLayout btnSettings;
     private TextClock mainTextClock;
     private TextView tvDateDisplay;
-
-    // Стеклянные оверлеи
-    private FrameLayout appDrawerOverlay;
-    private RecyclerView drawerRecycler;
 
     private FrameLayout settingsOverlay;
     private FrameLayout tilesManagerOverlay;
@@ -98,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private TextView tvAutostartVal;
 
     private AppAdapter dockAdapter;
-    private DrawerAdapter drawerAdapter;
+    private MainGridAdapter mainGridAdapter;
     private TilesManagerAdapter tilesAdapter;
 
     private final List<AppItem> homeApps = new ArrayList<>();
@@ -123,7 +120,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public int[] colors;
         public int glowColor;
         public int bannerRes;
-        public boolean isActionAllApps = false;
 
         public AppItem(String packageName, String label, Drawable icon, int[] colors, int glowColor, int bannerRes) {
             this.packageName = packageName;
@@ -132,14 +128,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             this.colors = colors;
             this.glowColor = glowColor;
             this.bannerRes = bannerRes;
-        }
-
-        public AppItem(String label, int[] colors, boolean isActionAllApps) {
-            this.label = label;
-            this.colors = colors;
-            this.glowColor = 0xFF353545;
-            this.bannerRes = R.drawable.bg_poster_studio;
-            this.isActionAllApps = isActionAllApps;
         }
     }
 
@@ -172,18 +160,15 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         ambientGlow = findViewById(R.id.ambient_glow);
         heroTitle = findViewById(R.id.hero_title);
         
-        // Кинематографичный шрифт SF Pro для заголовка приложения
         heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
         heroTitle.setLetterSpacing(-0.03f);
 
         homeContentContainer = findViewById(R.id.home_content_container);
         dockRecycler = findViewById(R.id.dock_recycler);
+        mainGridRecycler = findViewById(R.id.main_grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         mainTextClock = findViewById(R.id.main_text_clock);
         tvDateDisplay = findViewById(R.id.tv_date_display);
-
-        appDrawerOverlay = findViewById(R.id.app_drawer_overlay);
-        drawerRecycler = findViewById(R.id.drawer_recycler);
 
         settingsOverlay = findViewById(R.id.settings_overlay);
         tilesManagerOverlay = findViewById(R.id.tiles_manager_overlay);
@@ -209,9 +194,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         dockAdapter = new AppAdapter();
         dockRecycler.setAdapter(dockAdapter);
 
-        drawerRecycler.setLayoutManager(new GridLayoutManager(this, 5));
-        drawerAdapter = new DrawerAdapter();
-        drawerRecycler.setAdapter(drawerAdapter);
+        // Основная сетка приложений под доком (по 6 в ряд)
+        mainGridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
+        mainGridAdapter = new MainGridAdapter();
+        mainGridRecycler.setAdapter(mainGridAdapter);
 
         tilesManagerRecycler.setLayoutManager(new GridLayoutManager(this, 2));
         tilesAdapter = new TilesManagerAdapter();
@@ -606,7 +592,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void grabItem(int position) {
-        if (position < 0 || position >= homeApps.size() - 1) return;
+        if (position < 0 || position >= homeApps.size()) return;
         isDraggingItem = true;
         currentGrabbedPosition = position;
         soundManager.playClick();
@@ -631,9 +617,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         soundManager.playClick();
         List<String> order = new ArrayList<>();
         for (AppItem item : homeApps) {
-            if (!item.isActionAllApps) {
-                order.add(item.packageName);
-            }
+            order.add(item.packageName);
         }
         savePinnedOrder(order);
 
@@ -643,7 +627,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void moveItem(int fromPosition, int toPosition) {
-        int maxIndex = homeApps.size() - 2;
+        int maxIndex = homeApps.size() - 1;
         if (toPosition < 0 || toPosition > maxIndex || fromPosition == toPosition) return;
 
         soundManager.playFocus();
@@ -698,7 +682,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             if (focused != null && focused.getParent() == dockRecycler) {
                 int pos = dockRecycler.getChildAdapterPosition(focused);
                 if (pos >= 0 && pos < homeApps.size()) {
-                    showAppContextMenu(homeApps.get(pos), false);
+                    showAppContextMenu(homeApps.get(pos));
                     return true;
                 }
             }
@@ -714,43 +698,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 closeSettings();
                 return true;
             }
-            if (appDrawerOverlay.getVisibility() == View.VISIBLE) {
-                closeDrawer();
-                return true;
-            }
         }
         return super.onKeyDown(keyCode, event);
     }
 
-    private void setHomeForegroundVisible(boolean visible) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        findViewById(R.id.top_status_pill).setVisibility(visibility);
-        findViewById(R.id.hero_title).setVisibility(visibility);
-        findViewById(R.id.dock_layout_wrapper).setVisibility(visibility);
-    }
-
-    private void openDrawer() {
-        if (isJiggleMode) stopJiggleMode();
-        setHomeForegroundVisible(false);
-
-        appDrawerOverlay.setVisibility(View.VISIBLE);
-        appDrawerOverlay.setAlpha(0f);
-        appDrawerOverlay.animate().alpha(1f).setDuration(220).start();
-        drawerRecycler.requestFocus();
-    }
-
-    private void closeDrawer() {
-        appDrawerOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
-            appDrawerOverlay.setVisibility(View.GONE);
-            setHomeForegroundVisible(true);
-            dockRecycler.requestFocus();
-        }).start();
-    }
-
     private void openSettings() {
         if (isJiggleMode) stopJiggleMode();
-        setHomeForegroundVisible(false);
-
         applyPreferencesUi();
         settingsOverlay.setVisibility(View.VISIBLE);
         settingsOverlay.setAlpha(0f);
@@ -761,7 +714,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void closeSettings() {
         settingsOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
             settingsOverlay.setVisibility(View.GONE);
-            setHomeForegroundVisible(true);
             dockRecycler.requestFocus();
         }).start();
     }
@@ -832,10 +784,8 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         }
 
-        homeApps.add(new AppItem("Все приложения", new int[]{0xFF242430, 0xFF121218}, true));
-
         dockAdapter.notifyDataSetChanged();
-        drawerAdapter.notifyDataSetChanged();
+        mainGridAdapter.notifyDataSetChanged();
         tilesAdapter.notifyDataSetChanged();
     }
 
@@ -856,17 +806,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         colorAnim.start();
     }
 
-    private void showAppContextMenu(AppItem item, boolean fromDrawer) {
-        if (item.isActionAllApps) return;
-
+    private void showAppContextMenu(AppItem item) {
         soundManager.playClick();
         List<String> options = new ArrayList<>();
-        if (!fromDrawer) {
-            options.add("Переместить на экране (Jiggle Mode)");
-            options.add("Убрать с главного экрана");
-        } else {
-            options.add("Закрепить на главный экран");
-        }
         options.add("Скрыть приложение");
         options.add("Удалить с ТВ");
 
@@ -875,27 +817,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 .setItems(options.toArray(new CharSequence[0]), (dialog, which) -> {
                     soundManager.playClick();
                     String choice = options.get(which);
-                    if (choice.equals("Переместить на экране (Jiggle Mode)")) {
-                        int index = homeApps.indexOf(item);
-                        startJiggleMode();
-                        if (index != -1) {
-                            grabItem(index);
-                        }
-                    } else if (choice.equals("Убрать с главного экрана")) {
-                        List<String> order = loadPinnedOrder();
-                        order.remove(item.packageName);
-                        savePinnedOrder(order);
-                        loadApps();
-                        Toast.makeText(this, "Ярлык убран", Toast.LENGTH_SHORT).show();
-                    } else if (choice.equals("Закрепить на главный экран")) {
-                        List<String> order = loadPinnedOrder();
-                        if (!order.contains(item.packageName)) {
-                            order.add(item.packageName);
-                            savePinnedOrder(order);
-                            loadApps();
-                            Toast.makeText(this, "Закреплено на главном", Toast.LENGTH_SHORT).show();
-                        }
-                    } else if (choice.equals("Скрыть приложение")) {
+                    if (choice.equals("Скрыть приложение")) {
                         Set<String> hidden = new HashSet<>(prefs.getStringSet("hidden_apps", new HashSet<>()));
                         hidden.add(item.packageName);
                         prefs.edit().putStringSet("hidden_apps", hidden).apply();
@@ -1019,34 +941,18 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
-    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (Squircle 18dp, без белой рамки, парящая тень) ---
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK (Скругление 18dp, без рамки, парящая тень) ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-
-        private int getCardWidth() {
-            String size = prefs.getString("tiles_size", "normal");
-            if ("compact".equals(size)) return dpToPx(120);
-            if ("large".equals(size)) return dpToPx(160);
-            return dpToPx(140);
-        }
-
-        private int getCardHeight() {
-            String size = prefs.getString("tiles_size", "normal");
-            if ("compact".equals(size)) return dpToPx(72);
-            if ("large".equals(size)) return dpToPx(94);
-            return dpToPx(82);
-        }
-
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(getCardWidth(), getCardHeight());
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(140), dpToPx(82));
             lp.setMargins(dpToPx(10), dpToPx(12), dpToPx(10), dpToPx(12));
             card.setLayoutParams(lp);
             card.setFocusable(true);
             card.setClickable(true);
 
-            // Мягкое скругление 18dp (tvOS Squircle)
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -1055,20 +961,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             });
             card.setClipToOutline(true);
 
-            // Иконка
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
 
-            // Текст для кнопки "Все приложения"
-            TextView tv = new TextView(parent.getContext());
-            tv.setTextColor(Color.WHITE);
-            tv.setTextSize(14);
-            tv.setTypeface(null, android.graphics.Typeface.BOLD);
-            tv.setGravity(Gravity.CENTER);
-            card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-            // Слой стеклянного блика tvOS Glass Shimmer
             View shimmer = new View(parent.getContext());
             GradientDrawable shimmerGrad = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
@@ -1086,78 +982,26 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = homeApps.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
-            int pos = holder.getBindingAdapterPosition();
-
-            int targetW = getCardWidth();
-            int targetH = getCardHeight();
-            ViewGroup.LayoutParams clp = card.getLayoutParams();
-            if (clp.width != targetW || clp.height != targetH) {
-                clp.width = targetW;
-                clp.height = targetH;
-                card.setLayoutParams(clp);
-            }
-
             ImageView iv = (ImageView) card.getChildAt(0);
-            TextView tv = (TextView) card.getChildAt(1);
-            View shimmer = card.getChildAt(2);
+            View shimmer = card.getChildAt(1);
 
-            if (item.isActionAllApps) {
-                iv.setVisibility(View.GONE);
-                tv.setVisibility(View.VISIBLE);
-                tv.setText("⊞\nВсе");
-            } else {
-                tv.setVisibility(View.GONE);
-                iv.setVisibility(View.VISIBLE);
-                iv.setImageDrawable(item.icon);
-            }
+            iv.setImageDrawable(item.icon);
 
             GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
             normalBg.setCornerRadius(dpToPx(18));
-
-            boolean isThisItemGrabbed = (isDraggingItem && pos == currentGrabbedPosition);
-            if (isThisItemGrabbed) {
-                normalBg.setStroke(dpToPx(4), Color.parseColor("#FFCC00"));
-            }
             card.setBackground(normalBg);
-
-            ObjectAnimator jiggleAnim = (ObjectAnimator) card.getTag(R.id.dock_recycler);
-            if (isJiggleMode && !item.isActionAllApps) {
-                if (jiggleAnim == null) {
-                    jiggleAnim = ObjectAnimator.ofFloat(card, "rotation", -1.8f, 1.8f);
-                    jiggleAnim.setDuration(120);
-                    jiggleAnim.setRepeatMode(ValueAnimator.REVERSE);
-                    jiggleAnim.setRepeatCount(ValueAnimator.INFINITE);
-                    jiggleAnim.setInterpolator(new LinearInterpolator());
-                    card.setTag(R.id.dock_recycler, jiggleAnim);
-                    jiggleAnim.start();
-                }
-            } else {
-                if (jiggleAnim != null) {
-                    jiggleAnim.cancel();
-                    card.setTag(R.id.dock_recycler, null);
-                }
-                card.setRotation(0f);
-            }
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
                     soundManager.playFocus();
-                    currentGrabbedPosition = holder.getBindingAdapterPosition();
-                    
-                    // Увеличение scale(1.12f) + парящая тень (elevation 16dp) без белой рамки
-                    animateScale(v, isThisItemGrabbed ? 1.22f : 1.12f, isThisItemGrabbed ? 1.22f : 1.12f, dpToPx(16));
+                    animateScale(v, 1.12f, 1.12f, dpToPx(16));
                     
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-                    if (isThisItemGrabbed) {
-                        focusBg.setStroke(dpToPx(4), Color.parseColor("#FFCC00"));
-                    }
                     v.setBackground(focusBg);
 
-                    if (!isJiggleMode) {
-                        heroTitle.setText(item.label);
-                    }
+                    heroTitle.setText(item.label);
                     heroBanner.setImageResource(item.bannerRes);
                     animateAmbientGlow(item.glowColor);
 
@@ -1167,7 +1011,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     }).start();
 
                     startParallaxTilt(v, iv);
-
                 } else {
                     stopParallaxTilt(v, iv);
                     shimmer.animate().alpha(0f).setDuration(200).start();
@@ -1178,44 +1021,91 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             card.setOnClickListener(v -> {
                 resetScreensaverTimer();
-                if (isJiggleMode) {
-                    if (SystemClock.uptimeMillis() - jiggleModeStartTime < 300L) {
-                        return;
-                    }
-                    if (item.isActionAllApps) return;
-
-                    if (isDraggingItem) {
-                        releaseGrabbedItem();
-                    } else {
-                        grabItem(pos);
-                    }
-                    return;
-                }
-
                 soundManager.playClick();
-                if (item.isActionAllApps) {
-                    openDrawer();
-                } else {
-                    PackageManager pm = getPackageManager();
-                    Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
-                    if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
-                    if (launch != null) startActivity(launch);
-                }
-            });
-
-            card.setOnLongClickListener(v -> {
-                resetScreensaverTimer();
-                if (item.isActionAllApps) return true;
-
-                startJiggleMode();
-                grabItem(pos);
-                return true;
+                PackageManager pm = getPackageManager();
+                Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
+                if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
+                if (launch != null) startActivity(launch);
             });
         }
 
         @Override
         public int getItemCount() {
             return homeApps.size();
+        }
+    }
+
+    // --- 2. АДАПТЕР ОСНОВНОЙ СЕТКИ ПРИЛОЖЕНИЙ НА РАБОЧЕМ СТОЛЕ ---
+    private class MainGridAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            FrameLayout card = new FrameLayout(parent.getContext());
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(130), dpToPx(76));
+            lp.setMargins(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+            card.setLayoutParams(lp);
+            card.setFocusable(true);
+            card.setClickable(true);
+
+            card.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(16));
+                }
+            });
+            card.setClipToOutline(true);
+
+            ImageView iv = new ImageView(parent.getContext());
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(42), dpToPx(42), Gravity.CENTER));
+
+            return new RecyclerView.ViewHolder(card) {};
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            AppItem item = allInstalledApps.get(position);
+            FrameLayout card = (FrameLayout) holder.itemView;
+            ImageView iv = (ImageView) card.getChildAt(0);
+
+            iv.setImageDrawable(item.icon);
+
+            GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
+            normalBg.setCornerRadius(dpToPx(16));
+            card.setBackground(normalBg);
+
+            card.setOnFocusChangeListener((v, hasFocus) -> {
+                resetScreensaverTimer();
+                if (hasFocus) {
+                    soundManager.playFocus();
+                    animateScale(v, 1.12f, 1.12f, dpToPx(14));
+                    
+                    GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
+                    focusBg.setCornerRadius(dpToPx(16));
+                    v.setBackground(focusBg);
+
+                    heroTitle.setText(item.label);
+                    heroBanner.setImageResource(item.bannerRes);
+                    animateAmbientGlow(item.glowColor);
+                } else {
+                    animateScale(v, 1.0f, 1.0f, 0f);
+                    v.setBackground(normalBg);
+                }
+            });
+
+            card.setOnClickListener(v -> {
+                resetScreensaverTimer();
+                soundManager.playClick();
+                PackageManager pm = getPackageManager();
+                Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
+                if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
+                if (launch != null) startActivity(launch);
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return allInstalledApps.size();
         }
     }
 
@@ -1252,93 +1142,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
         card.animate().rotationX(0f).rotationY(0f).setDuration(200).start();
         innerIcon.animate().translationX(0f).translationY(0f).setDuration(200).start();
-    }
-
-    // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ ---
-    private class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        @NonNull
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(156), dpToPx(92));
-            lp.setMargins(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
-            card.setLayoutParams(lp);
-            card.setFocusable(true);
-            card.setClickable(true);
-
-            card.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(18));
-                }
-            });
-            card.setClipToOutline(true);
-
-            ImageView iv = new ImageView(parent.getContext());
-            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(44), dpToPx(44), Gravity.CENTER));
-
-            TextView tv = new TextView(parent.getContext());
-            tv.setTextColor(Color.WHITE);
-            tv.setTextSize(12);
-            tv.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-            tv.setPadding(dpToPx(8), 0, dpToPx(8), dpToPx(8));
-            card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-            return new RecyclerView.ViewHolder(card) {};
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            AppItem item = allInstalledApps.get(position);
-            FrameLayout card = (FrameLayout) holder.itemView;
-            ImageView iv = (ImageView) card.getChildAt(0);
-            TextView tv = (TextView) card.getChildAt(1);
-
-            iv.setImageDrawable(item.icon);
-            tv.setText(item.label);
-
-            GradientDrawable normalBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            normalBg.setCornerRadius(dpToPx(18));
-            card.setBackground(normalBg);
-
-            card.setOnFocusChangeListener((v, hasFocus) -> {
-                resetScreensaverTimer();
-                if (hasFocus) {
-                    soundManager.playFocus();
-                    animateScale(v, 1.12f, 1.12f, dpToPx(10));
-                    GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-                    focusBg.setCornerRadius(dpToPx(18));
-                    v.setBackground(focusBg);
-
-                    heroBanner.setImageResource(item.bannerRes);
-                    animateAmbientGlow(item.glowColor);
-                } else {
-                    animateScale(v, 1.0f, 1.0f, 0f);
-                    v.setBackground(normalBg);
-                }
-            });
-
-            card.setOnClickListener(v -> {
-                resetScreensaverTimer();
-                soundManager.playClick();
-                PackageManager pm = getPackageManager();
-                Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
-                if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
-                if (launch != null) startActivity(launch);
-            });
-
-            card.setOnLongClickListener(v -> {
-                resetScreensaverTimer();
-                showAppContextMenu(item, true);
-                return true;
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return allInstalledApps.size();
-        }
     }
 
     // --- 3. АДАПТЕР УПРАВЛЕНИЯ ПЛИТКАМИ ---
