@@ -81,13 +81,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
-    // Центр управления tvOS (по центру экрана)
+    // Центр управления tvOS (правая выдвижная шторка 440dp)
     private FrameLayout controlCenterOverlay;
     private LinearLayout controlCenterPanel;
     private TextView ccWifiName;
     private TextView ccWifiStatus;
     private TextView ccVolumeLevel;
-    private ImageView ccVolIconImg;
     private TextView ccSleepTimerVal;
     private AudioManager audioManager;
     private int sleepTimerMinutes = 0;
@@ -210,7 +209,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         ccWifiName = findViewById(R.id.cc_wifi_name);
         ccWifiStatus = findViewById(R.id.cc_wifi_status);
         ccVolumeLevel = findViewById(R.id.cc_volume_level);
-        ccVolIconImg = findViewById(R.id.cc_vol_icon_img);
         ccSleepTimerVal = findViewById(R.id.cc_sleeptimer_val);
 
         screensaverOverlay = findViewById(R.id.screensaver_overlay);
@@ -474,15 +472,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         controlCenterOverlay.setAlpha(0f);
         controlCenterOverlay.animate().alpha(1f).setDuration(220).start();
 
-        controlCenterPanel.setScaleX(0.85f);
-        controlCenterPanel.setScaleY(0.85f);
-        controlCenterPanel.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
+        controlCenterPanel.setTranslationX(dpToPx(440));
+        controlCenterPanel.animate().translationX(0f).setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
 
         findViewById(R.id.cc_card_power).requestFocus();
     }
 
     private void closeControlCenter() {
-        controlCenterPanel.animate().scaleX(0.85f).scaleY(0.85f).setDuration(200).start();
+        controlCenterPanel.animate().translationX(dpToPx(440)).setDuration(200).start();
         controlCenterOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             controlCenterOverlay.setVisibility(View.GONE);
             dockRecycler.requestFocus();
