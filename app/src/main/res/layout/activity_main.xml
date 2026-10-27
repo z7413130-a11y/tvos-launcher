@@ -36,42 +36,86 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Верхний бар -->
+        <!-- ЕДИНАЯ ВЕРХНЯЯ ПЛАШКА (КАПСУЛА) ТОЧЬ-В-ТОЧЬ КАК НА ФОТО -->
         <LinearLayout
-            android:id="@+id/top_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
+            android:id="@+id/top_status_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="64dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="32dp"
+            android:background="@drawable/glass_dock_bg"
             android:orientation="horizontal"
-            android:paddingStart="56dp"
-            android:paddingEnd="56dp"
-            android:paddingTop="36dp"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <TextView
-                android:id="@+id/hero_title"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Apple TV"
-                android:textColor="#FFFFFF"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif-medium"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="4"
-                android:shadowRadius="14" />
-
+            <!-- Кнопка Пункта управления слева -->
             <FrameLayout
-                android:id="@+id/btn_launcher_settings"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="20dp"
+                android:id="@+id/btn_open_control_center"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:focusable="true"
                 android:clickable="true"
-                android:nextFocusLeft="@id/btn_launcher_settings"
-                android:nextFocusRight="@id/btn_launcher_settings"
+                android:background="@drawable/pill_button_selector">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="🎛"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp" />
+            </FrameLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="28dp"
+                android:background="#22FFFFFF"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="18dp" />
+
+            <!-- Время и дата в центре плашки -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextClock
+                    android:id="@+id/main_text_clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:format12Hour="h:mm a"
+                    android:format24Hour="HH:mm"
+                    android:textColor="#FFFFFF"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/tv_date_display"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="28dp"
+                android:background="#22FFFFFF"
+                android:layout_marginStart="18dp"
+                android:layout_marginEnd="14dp" />
+
+            <!-- Кнопка Настроек (шестеренка) справа -->
+            <FrameLayout
+                android:id="@+id/btn_launcher_settings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:focusable="true"
+                android:clickable="true"
                 android:background="@drawable/pill_button_selector">
 
                 <TextView
@@ -80,35 +124,28 @@
                     android:layout_gravity="center"
                     android:text="⚙"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp" />
+                    android:textSize="20sp" />
             </FrameLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="end">
-
-                <TextClock
-                    android:id="@+id/main_text_clock"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:format12Hour="h:mm a"
-                    android:format24Hour="HH:mm"
-                    android:textColor="#EEFFFFFF"
-                    android:textSize="18sp"
-                    android:fontFamily="sans-serif-medium" />
-
-                <TextView
-                    android:id="@+id/tv_date_display"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="#88FFFFFF"
-                    android:textSize="12sp"
-                    android:layout_marginTop="2dp"
-                    android:fontFamily="sans-serif" />
-            </LinearLayout>
         </LinearLayout>
+
+        <!-- Заголовок активного приложения слева -->
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="64dp"
+            android:layout_marginTop="120dp"
+            android:text="Apple TV"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:shadowColor="#CC000000"
+            android:shadowDx="0"
+            android:shadowDy="4"
+            android:shadowRadius="14" />
 
         <!-- Нижний парящий Dock tvOS -->
         <LinearLayout
@@ -143,7 +180,6 @@
                     android:clipToPadding="false" />
             </FrameLayout>
 
-            <!-- Линии нижней полки tvOS -->
             <LinearLayout
                 android:id="@+id/peeking_shelf"
                 android:layout_width="wrap_content"
@@ -286,7 +322,7 @@
                             android:textSize="20sp" />
                     </FrameLayout>
 
-                    <!-- 2. Звуковые эффекты tvOS -->
+                    <!-- 2. Звуки -->
                     <FrameLayout
                         android:id="@+id/setting_item_sound"
                         android:layout_width="match_parent"
@@ -352,7 +388,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 4. Размер плиток -->
+                    <!-- 4. Размер -->
                     <FrameLayout
                         android:id="@+id/setting_item_tiles_size"
                         android:layout_width="match_parent"
@@ -484,7 +520,7 @@
                             android:textSize="13sp" />
                     </FrameLayout>
 
-                    <!-- 8. Сброс порядка -->
+                    <!-- 8. Сброс -->
                     <FrameLayout
                         android:id="@+id/setting_item_reset_order"
                         android:layout_width="match_parent"
@@ -532,7 +568,7 @@
                             android:textStyle="bold" />
                     </FrameLayout>
 
-                    <!-- 10. Параметры Android TV -->
+                    <!-- 10. Системные -->
                     <FrameLayout
                         android:id="@+id/setting_item_system"
                         android:layout_width="match_parent"
@@ -730,115 +766,95 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 6. ВЫЕЗЖАЮЩИЙ ЦЕНТР УПРАВЛЕНИЯ APPLE TVOS (CONTROL CENTER) -->
+    <!-- 6. ЦЕНТР УПРАВЛЕНИЯ ТОЧЬ-В-ТОЧЬ КАК НА ФОТО (ПО ЦЕНТРУ ЭКРАНА) -->
     <FrameLayout
         android:id="@+id/control_center_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#66000000"
+        android:background="#B3000000"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
 
+        <!-- Центральная модульная панель управления -->
         <LinearLayout
             android:id="@+id/control_center_panel"
-            android:layout_width="380dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
+            android:layout_width="720dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:background="@drawable/glass_dock_bg"
             android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
-            android:paddingTop="36dp"
-            android:paddingBottom="28dp"
+            android:padding="28dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
+            <!-- Верхний ряд: слева Выключение, справа Wi-Fi и Громкость -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="16dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
+                <!-- Кнопка Включение (большая карточка слева) -->
                 <FrameLayout
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:background="@drawable/settings_item_selector">
-                    <TextView
+                    android:id="@+id/cc_card_power"
+                    android:layout_width="260dp"
+                    android:layout_height="160dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="@drawable/settings_item_selector"
+                    android:padding="20dp">
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:text=""
-                        android:textColor="#FFFFFF"
-                        android:textSize="22sp" />
-                </FrameLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="14dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Пункт управления"
-                        android:textColor="#FFFFFF"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/cc_time_display"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="21:45"
-                        android:textColor="#88FFFFFF"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="[Назад]"
-                    android:textColor="#88FFFFFF"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <ScrollView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <!-- 1. Wi-Fi -->
-                    <FrameLayout
-                        android:id="@+id/cc_card_wifi"
-                        android:layout_width="match_parent"
-                        android:layout_height="64dp"
-                        android:layout_marginBottom="10dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="16dp">
+                        android:orientation="vertical"
+                        android:gravity="center">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="📶"
-                            android:textSize="20sp" />
+                            android:text="⏻"
+                            android:textColor="#FFFFFF"
+                            android:textSize="54sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Выключение"
+                            android:textColor="#FFFFFF"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Правая колонка: Wi-Fi и Громкость -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="160dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical">
+
+                    <!-- Wi-Fi сеть -->
+                    <FrameLayout
+                        android:id="@+id/cc_card_wifi"
+                        android:layout_width="match_parent"
+                        android:layout_height="72dp"
+                        android:layout_marginBottom="16dp"
+                        android:focusable="true"
+                        android:clickable="true"
+                        android:background="@drawable/settings_item_selector"
+                        android:paddingHorizontal="20dp">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center_vertical|start"
-                            android:layout_marginStart="36dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -847,7 +863,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="Wi-Fi сеть"
                                 android:textColor="#FFFFFF"
-                                android:textSize="14sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -856,154 +872,194 @@
                                 android:layout_height="wrap_content"
                                 android:text="Подключено"
                                 android:textColor="#88FFFFFF"
-                                android:textSize="11sp" />
+                                android:textSize="12sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical|end"
+                            android:text="›"
+                            android:textColor="#88FFFFFF"
+                            android:textSize="22sp" />
                     </FrameLayout>
 
-                    <!-- 2. Громкость -->
+                    <!-- Громкость со слайдером -->
                     <FrameLayout
                         android:id="@+id/cc_card_volume"
                         android:layout_width="match_parent"
-                        android:layout_height="70dp"
-                        android:layout_marginBottom="10dp"
+                        android:layout_height="72dp"
                         android:focusable="true"
                         android:clickable="true"
                         android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="16dp">
-
-                        <TextView
-                            android:id="@+id/cc_vol_icon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="🔊"
-                            android:textSize="22sp" />
+                        android:paddingHorizontal="20dp">
 
                         <LinearLayout
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:layout_marginStart="38dp"
-                            android:orientation="vertical">
+                            android:layout_gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
 
                             <TextView
+                                android:id="@+id/cc_vol_icon"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Громкость [◀ ▶]"
-                                android:textColor="#FFFFFF"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="🔊"
+                                android:textSize="22sp"
+                                android:layout_marginEnd="14dp" />
+
+                            <!-- Имитация слайдера громкости tvOS -->
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="6dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/shape_peeking_pill_blue" />
 
                             <TextView
                                 android:id="@+id/cc_volume_level"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="50%"
-                                android:textColor="#34C759"
-                                android:textSize="13sp"
-                                android:textStyle="bold" />
+                                android:text="83%"
+                                android:textColor="#FFFFFF"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:layout_marginStart="14dp" />
                         </LinearLayout>
                     </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
 
-                    <!-- 3. Заставка -->
-                    <FrameLayout
-                        android:id="@+id/cc_card_screensaver"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:layout_marginBottom="10dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="16dp">
+            <!-- Средний ряд: Заставка Aerial и Таймер сна -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Заставка Aerial -->
+                <FrameLayout
+                    android:id="@+id/cc_card_screensaver"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="@drawable/settings_item_selector"
+                    android:paddingHorizontal="20dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|start"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="🕹"
-                            android:textSize="20sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:layout_marginStart="36dp"
                             android:text="Заставка Aerial"
                             android:textColor="#FFFFFF"
-                            android:textSize="14sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
-                    </FrameLayout>
+                    </LinearLayout>
 
-                    <!-- 4. Таймер сна -->
-                    <FrameLayout
-                        android:id="@+id/cc_card_sleeptimer"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:layout_marginBottom="10dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="16dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|end"
+                        android:text="›"
+                        android:textColor="#88FFFFFF"
+                        android:textSize="22sp" />
+                </FrameLayout>
+
+                <!-- Таймер сна -->
+                <FrameLayout
+                    android:id="@+id/cc_card_sleeptimer"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="@drawable/settings_item_selector"
+                    android:paddingHorizontal="20dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|start"
+                        android:orientation="vertical">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="⏱"
-                            android:textSize="20sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:layout_marginStart="36dp"
                             android:text="Таймер сна"
                             android:textColor="#FFFFFF"
-                            android:textSize="14sp"
+                            android:textSize="15sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/cc_sleeptimer_val"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|end"
                             android:text="Выкл"
                             android:textColor="#88FFFFFF"
-                            android:textSize="13sp" />
-                    </FrameLayout>
+                            android:textSize="12sp" />
+                    </LinearLayout>
 
-                    <!-- 5. Питание -->
-                    <FrameLayout
-                        android:id="@+id/cc_card_power"
-                        android:layout_width="match_parent"
-                        android:layout_height="58dp"
-                        android:layout_marginBottom="10dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="@drawable/settings_item_selector"
-                        android:paddingHorizontal="16dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical|end"
+                        android:text="›"
+                        android:textColor="#88FFFFFF"
+                        android:textSize="22sp" />
+                </FrameLayout>
+            </LinearLayout>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:text="⏻"
-                            android:textColor="#FF3B30"
-                            android:textSize="20sp" />
+            <!-- Нижний ряд: Спящий режим ТВ -->
+            <FrameLayout
+                android:id="@+id/cc_card_sleepmode"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:focusable="true"
+                android:clickable="true"
+                android:background="@drawable/settings_item_selector"
+                android:paddingHorizontal="20dp">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center_vertical|start"
-                            android:layout_marginStart="36dp"
-                            android:text="Спящий режим ТВ"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-                    </FrameLayout>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:orientation="vertical">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Спящий режим ТВ"
+                        android:textColor="#FFFFFF"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Выкл"
+                        android:textColor="#88FFFFFF"
+                        android:textSize="12sp" />
                 </LinearLayout>
-            </ScrollView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|end"
+                    android:text="›"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="22sp" />
+            </FrameLayout>
 
         </LinearLayout>
     </FrameLayout>

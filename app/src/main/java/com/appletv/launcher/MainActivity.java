@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private RelativeLayout homeContentContainer;
     private RecyclerView dockRecycler;
     private FrameLayout btnSettings;
+    private FrameLayout btnOpenControlCenter;
     private TextClock mainTextClock;
     private TextView tvDateDisplay;
 
@@ -80,10 +81,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
-    // Центр управления tvOS
+    // Центр управления tvOS (по центру экрана, как на фото)
     private FrameLayout controlCenterOverlay;
     private LinearLayout controlCenterPanel;
-    private TextView ccTimeDisplay;
     private TextView ccWifiName;
     private TextView ccWifiStatus;
     private TextView ccVolumeLevel;
@@ -93,9 +93,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private int sleepTimerMinutes = 0;
     private final Handler sleepTimerHandler = new Handler(Looper.getMainLooper());
     private Runnable sleepTimerRunnable;
-    private long backButtonDownTime = 0L;
-    private boolean isBackLongPressed = false;
-    private long controlCenterOpenTime = 0L;
 
     // Заставка Screensaver
     private FrameLayout screensaverOverlay;
@@ -196,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         homeContentContainer = findViewById(R.id.home_content_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
+        btnOpenControlCenter = findViewById(R.id.btn_open_control_center);
         mainTextClock = findViewById(R.id.main_text_clock);
         tvDateDisplay = findViewById(R.id.tv_date_display);
 
@@ -209,7 +207,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         // Центр управления
         controlCenterOverlay = findViewById(R.id.control_center_overlay);
         controlCenterPanel = findViewById(R.id.control_center_panel);
-        ccTimeDisplay = findViewById(R.id.cc_time_display);
         ccWifiName = findViewById(R.id.cc_wifi_name);
         ccWifiStatus = findViewById(R.id.cc_wifi_status);
         ccVolumeLevel = findViewById(R.id.cc_volume_level);
@@ -314,6 +311,28 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void initControlCenterListeners() {
         controlCenterOverlay.setOnClickListener(v -> closeControlCenter());
 
+        btnOpenControlCenter.setOnClickListener(v -> {
+            soundManager.playClick();
+            openControlCenter();
+        });
+        btnOpenControlCenter.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                soundManager.playFocus();
+                animateScale(v, 1.12f, 1.12f, dpToPx(8));
+                heroTitle.setText("Пункт управления");
+            } else {
+                animateScale(v, 1.0f, 1.0f, 0f);
+            }
+        });
+
+        FrameLayout cardPower = findViewById(R.id.cc_card_power);
+        cardPower.setOnClickListener(v -> {
+            soundManager.playClick();
+            openScreensaver();
+            closeControlCenter();
+        });
+        setupCcCardFocus(cardPower);
+
         FrameLayout cardWifi = findViewById(R.id.cc_card_wifi);
         cardWifi.setOnClickListener(v -> {
             soundManager.playClick();
@@ -358,13 +377,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupCcCardFocus(cardTimer);
 
-        FrameLayout cardPower = findViewById(R.id.cc_card_power);
-        cardPower.setOnClickListener(v -> {
+        FrameLayout cardSleepMode = findViewById(R.id.cc_card_sleepmode);
+        cardSleepMode.setOnClickListener(v -> {
             soundManager.playClick();
             openScreensaver();
             closeControlCenter();
         });
-        setupCcCardFocus(cardPower);
+        setupCcCardFocus(cardSleepMode);
     }
 
     private void setupCcCardFocus(View card) {
@@ -379,9 +398,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void updateControlCenterUi() {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-        ccTimeDisplay.setText(sdf.format(new Date()));
-
         try {
             ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo netInfo = cm != null ? cm.getActiveNetworkInfo() : null;
@@ -392,7 +408,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     String ssid = (winfo != null && winfo.getSSID() != null) ? winfo.getSSID().replace("\"", "") : "Wi-Fi";
                     if ("<unknown ssid>".equals(ssid)) ssid = "Wi-Fi Подключено";
                     ccWifiName.setText(ssid);
-                    ccWifiStatus.setText("Активно");
+                    ccWifiStatus.setText("Подключено");
                 } else if (netInfo.getType() == ConnectivityManager.TYPE_ETHERNET) {
                     ccWifiName.setText("Ethernet");
                     ccWifiStatus.setText("Проводное подключение");
@@ -455,20 +471,20 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private void openControlCenter() {
         if (isJiggleMode) stopJiggleMode();
         updateControlCenterUi();
-        controlCenterOpenTime = SystemClock.uptimeMillis();
 
         controlCenterOverlay.setVisibility(View.VISIBLE);
         controlCenterOverlay.setAlpha(0f);
         controlCenterOverlay.animate().alpha(1f).setDuration(220).start();
 
-        controlCenterPanel.setTranslationX(dpToPx(380));
-        controlCenterPanel.animate().translationX(0f).setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
+        controlCenterPanel.setScaleX(0.85f);
+        controlCenterPanel.setScaleY(0.85f);
+        controlCenterPanel.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new DecelerateInterpolator()).start();
 
-        findViewById(R.id.cc_card_wifi).requestFocus();
+        findViewById(R.id.cc_card_power).requestFocus();
     }
 
     private void closeControlCenter() {
-        controlCenterPanel.animate().translationX(dpToPx(380)).setDuration(200).start();
+        controlCenterPanel.animate().scaleX(0.85f).scaleY(0.85f).setDuration(200).start();
         controlCenterOverlay.animate().alpha(0f).setDuration(200).withEndAction(() -> {
             controlCenterOverlay.setVisibility(View.GONE);
             dockRecycler.requestFocus();
@@ -861,53 +877,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             return true;
         }
 
-        // 1. Управление внутри Центра управления
+        // Закрытие Центра управления по кнопке Назад
         if (controlCenterOverlay.getVisibility() == View.VISIBLE) {
             if (keyCode == KeyEvent.KEYCODE_BACK) {
-                if (SystemClock.uptimeMillis() - controlCenterOpenTime > 400L) {
-                    soundManager.playClick();
-                    closeControlCenter();
-                }
-                return true;
-            }
-
-            View focused = getCurrentFocus();
-            if (focused != null && focused.getId() == R.id.cc_card_volume) {
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    soundManager.playFocus();
-                    if (audioManager != null) {
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0);
-                        updateControlCenterUi();
-                    }
-                    return true;
-                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    soundManager.playFocus();
-                    if (audioManager != null) {
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0);
-                        updateControlCenterUi();
-                    }
-                    return true;
-                }
-            }
-        }
-
-        // 2. Долгое зажатие "Назад" (0.85 сек) для вызова Центра управления
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (event.getRepeatCount() == 0) {
-                backButtonDownTime = SystemClock.uptimeMillis();
-                isBackLongPressed = false;
-            } else if (!isBackLongPressed && (SystemClock.uptimeMillis() - backButtonDownTime >= 850L)) {
-                isBackLongPressed = true;
                 soundManager.playClick();
-                openControlCenter();
+                closeControlCenter();
                 return true;
             }
-        }
-
-        if (keyCode == KeyEvent.KEYCODE_TV || keyCode == KeyEvent.KEYCODE_GUIDE) {
-            soundManager.playClick();
-            openControlCenter();
-            return true;
         }
 
         if (isJiggleMode) {
@@ -947,9 +923,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (isBackLongPressed) {
-                return true;
-            }
             soundManager.playFocus();
             if (tilesManagerOverlay.getVisibility() == View.VISIBLE) {
                 closeTilesManager();
@@ -967,20 +940,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return super.onKeyDown(keyCode, event);
     }
 
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (isBackLongPressed) {
-                isBackLongPressed = false;
-                return true;
-            }
-        }
-        return super.onKeyUp(keyCode, event);
-    }
-
     private void setHomeForegroundVisible(boolean visible) {
         int visibility = visible ? View.VISIBLE : View.GONE;
-        findViewById(R.id.top_bar).setVisibility(visibility);
+        findViewById(R.id.top_status_pill).setVisibility(visibility);
+        findViewById(R.id.hero_title).setVisibility(visibility);
         findViewById(R.id.dock_layout_wrapper).setVisibility(visibility);
     }
 
