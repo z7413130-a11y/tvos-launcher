@@ -9,10 +9,10 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
         </intent>
-        <package android:name="ru.kinopoisk.yandex.tv" />
-        <package android:name="com.yandex.tv.ytplayer" />
-        <package android:name="mobi.zona" />
-        <package android:name="com.vk.tv" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
@@ -20,6 +20,7 @@
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="Apple TV"
         android:theme="@style/Theme.TvOS">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,5 +32,17 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Системный слушатель установки/удаления приложений -->
+        <receiver
+            android:name=".PackageReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
