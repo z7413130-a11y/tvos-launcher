@@ -30,6 +30,7 @@ import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -46,6 +47,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.json.JSONArray;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -100,6 +102,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private SharedPreferences prefs;
 
     private int currentAmbientColor = 0xFF14101A;
+
+    // Режим покачивания и сортировки плиток (tvOS Jiggle Mode)
+    private boolean isJiggleMode = false;
+    private int currentJigglePosition = -1;
 
     public static class AppItem {
         public String packageName;
@@ -527,6 +533,50 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         runOnUiThread(this::loadApps);
     }
 
+    // --- УПРАВЛЕНИЕ РЕЖИМОМ СОРТИРОВКИ (JIGGLE MODE) ---
+
+    private void startJiggleMode(int position) {
+        if (isJiggleMode) return;
+        isJiggleMode = true;
+        currentJigglePosition = position;
+        heroTitle.setText("Перемещение: [◀ ▶] двигать, [OK] готово");
+        dockAdapter.notifyDataSetChanged();
+    }
+
+    private void stopJiggleMode() {
+        if (!isJiggleMode) return;
+        isJiggleMode = false;
+        currentJigglePosition = -1;
+
+        List<String> order = new ArrayList<>();
+        for (AppItem item : homeApps) {
+            if (!item.isActionAllApps) {
+                order.add(item.packageName);
+            }
+        }
+        savePinnedOrder(order);
+
+        heroTitle.setText("Apple TV");
+        dockAdapter.notifyDataSetChanged();
+        Toast.makeText(this, "Порядок сохранён", Toast.LENGTH_SHORT).show();
+    }
+
+    private void moveItem(int fromPosition, int toPosition) {
+        int maxIndex = homeApps.size() - 2;
+        if (toPosition < 0 || toPosition > maxIndex || fromPosition == toPosition) return;
+
+        Collections.swap(homeApps, fromPosition, toPosition);
+        dockAdapter.notifyItemMoved(fromPosition, toPosition);
+        currentJigglePosition = toPosition;
+
+        dockRecycler.post(() -> {
+            View view = dockRecycler.getLayoutManager().findViewByPosition(toPosition);
+            if (view != null) {
+                view.requestFocus();
+            }
+        });
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         resetScreensaverTimer();
@@ -534,6 +584,19 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         if (screensaverOverlay.getVisibility() == View.VISIBLE) {
             closeScreensaver();
             return true;
+        }
+
+        if (isJiggleMode) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                moveItem(currentJigglePosition, currentJigglePosition - 1);
+                return true;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                moveItem(currentJigglePosition, currentJigglePosition + 1);
+                return true;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_BACK) {
+                stopJiggleMode();
+                return true;
+            }
         }
 
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -553,7 +616,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return super.onKeyDown(keyCode, event);
     }
 
-    // Скрываем только передний план домашнего экрана, сохраняя видимость постера и эмбиент-подсветки
     private void setHomeForegroundVisible(boolean visible) {
         int visibility = visible ? View.VISIBLE : View.GONE;
         findViewById(R.id.top_bar).setVisibility(visibility);
@@ -561,6 +623,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void openDrawer() {
+        if (isJiggleMode) stopJiggleMode();
         setHomeForegroundVisible(false);
 
         appDrawerOverlay.setVisibility(View.VISIBLE);
@@ -578,6 +641,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     }
 
     private void openSettings() {
+        if (isJiggleMode) stopJiggleMode();
         setHomeForegroundVisible(false);
 
         applyPreferencesUi();
@@ -690,6 +754,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
         List<String> options = new ArrayList<>();
         if (!fromDrawer) {
+            options.add("Переместить на экране (Jiggle Mode)");
             options.add("Убрать с главного экрана");
         } else {
             options.add("Закрепить на главный экран");
@@ -701,7 +766,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                 .setTitle(item.label)
                 .setItems(options.toArray(new CharSequence[0]), (dialog, which) -> {
                     String choice = options.get(which);
-                    if (choice.equals("Убрать с главного экрана")) {
+                    if (choice.equals("Переместить на экране (Jiggle Mode)")) {
+                        int index = homeApps.indexOf(item);
+                        if (index != -1) {
+                            startJiggleMode(index);
+                        }
+                    } else if (choice.equals("Убрать с главного экрана")) {
                         List<String> order = loadPinnedOrder();
                         order.remove(item.packageName);
                         savePinnedOrder(order);
@@ -748,7 +818,6 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         prefs.edit().putString("pinned_order", arr.toString()).apply();
     }
 
-    // Извлечение доминантного цвета для подсветки любого приложения
     private int extractDominantColor(Drawable drawable) {
         if (drawable == null) return 0xFF353545;
         try {
@@ -920,16 +989,39 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             normalBg.setCornerRadius(dpToPx(18));
             card.setBackground(normalBg);
 
+            // Анимация покачивания (Jiggle Effect)
+            ObjectAnimator jiggleAnim = (ObjectAnimator) card.getTag(R.id.dock_recycler);
+            if (isJiggleMode && !item.isActionAllApps) {
+                if (jiggleAnim == null) {
+                    jiggleAnim = ObjectAnimator.ofFloat(card, "rotation", -1.8f, 1.8f);
+                    jiggleAnim.setDuration(120);
+                    jiggleAnim.setRepeatMode(ValueAnimator.REVERSE);
+                    jiggleAnim.setRepeatCount(ValueAnimator.INFINITE);
+                    jiggleAnim.setInterpolator(new LinearInterpolator());
+                    card.setTag(R.id.dock_recycler, jiggleAnim);
+                    jiggleAnim.start();
+                }
+            } else {
+                if (jiggleAnim != null) {
+                    jiggleAnim.cancel();
+                    card.setTag(R.id.dock_recycler, null);
+                }
+                card.setRotation(0f);
+            }
+
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 resetScreensaverTimer();
                 if (hasFocus) {
+                    currentJigglePosition = holder.getBindingAdapterPosition();
                     animateScale(v, 1.15f, 1.15f, dpToPx(12));
                     GradientDrawable focusBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
                     focusBg.setCornerRadius(dpToPx(18));
-                    focusBg.setStroke(dpToPx(3), Color.WHITE);
+                    focusBg.setStroke(dpToPx(3), isJiggleMode ? Color.parseColor("#FFCC00") : Color.WHITE);
                     v.setBackground(focusBg);
 
-                    heroTitle.setText(item.label);
+                    if (!isJiggleMode) {
+                        heroTitle.setText(item.label);
+                    }
                     heroBanner.setImageResource(item.bannerRes);
                     animateAmbientGlow(item.glowColor);
                 } else {
@@ -940,6 +1032,10 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             card.setOnClickListener(v -> {
                 resetScreensaverTimer();
+                if (isJiggleMode) {
+                    stopJiggleMode();
+                    return;
+                }
                 if (item.isActionAllApps) {
                     openDrawer();
                 } else {
@@ -952,7 +1048,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             card.setOnLongClickListener(v -> {
                 resetScreensaverTimer();
-                showAppContextMenu(item, false);
+                if (item.isActionAllApps) return true;
+
+                startJiggleMode(holder.getBindingAdapterPosition());
                 return true;
             });
         }
@@ -963,7 +1061,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
-    // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ (ПРОПОРЦИОНАЛЬНЫЕ КАРТОЧКИ 5 В РЯД С ОТСТУПАМИ) ---
+    // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ ---
     private class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
