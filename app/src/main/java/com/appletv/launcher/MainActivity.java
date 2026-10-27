@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private TextClock mainTextClock;
     private TextView tvDateDisplay;
 
+    // Стеклянные оверлеи
     private FrameLayout appDrawerOverlay;
     private RecyclerView drawerRecycler;
 
@@ -70,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private FrameLayout tilesManagerOverlay;
     private RecyclerView tilesManagerRecycler;
 
+    // Заставка Screensaver
     private FrameLayout screensaverOverlay;
     private ImageView screensaverBg;
     private TextClock saverTextClock;
@@ -77,10 +79,12 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
     private final Handler idleHandler = new Handler(Looper.getMainLooper());
     private Runnable idleRunnable;
 
+    // Превью настроек
     private TextView settingsPreviewIcon;
     private TextView settingsPreviewTitle;
     private TextView settingsPreviewDesc;
 
+    // Значения настроек
     private TextView tvAmbientVal;
     private TextView tvSizeVal;
     private TextView tvClockVal;
@@ -183,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         dockAdapter = new AppAdapter();
         dockRecycler.setAdapter(dockAdapter);
 
-        drawerRecycler.setLayoutManager(new GridLayoutManager(this, 6));
+        drawerRecycler.setLayoutManager(new GridLayoutManager(this, 5));
         drawerAdapter = new DrawerAdapter();
         drawerRecycler.setAdapter(drawerAdapter);
 
@@ -315,37 +319,44 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
             }
         });
 
+        // 1. Плитки главного экрана
         FrameLayout itemTiles = findViewById(R.id.setting_item_tiles);
         TextView tvTiles = findViewById(R.id.tv_setting_tiles_title);
         TextView arrTiles = findViewById(R.id.tv_setting_tiles_arrow);
         itemTiles.setOnClickListener(v -> openTilesManager());
         setupSettingFocus(itemTiles, tvTiles, arrTiles, "⊞", "Плитки экрана", "Выберите, какие приложения отображаются в нижней полке Dock, а какие остаются только в каталоге.");
 
+        // 2. Эмбиент
         FrameLayout itemAmbient = findViewById(R.id.setting_item_ambient);
         TextView tvAmbient = findViewById(R.id.tv_setting_ambient_title);
         itemAmbient.setOnClickListener(v -> showAmbientPickerTvos());
         setupSettingFocus(itemAmbient, tvAmbient, tvAmbientVal, "💡", "Эмбиент-подсветка", "Регулировка насыщенности и яркости динамического свечения фона под цвет выбранного приложения.");
 
+        // 3. Размер плиток
         FrameLayout itemSize = findViewById(R.id.setting_item_tiles_size);
         TextView tvSize = findViewById(R.id.tv_setting_size_title);
         itemSize.setOnClickListener(v -> showTileSizePickerTvos());
         setupSettingFocus(itemSize, tvSize, tvSizeVal, "🔲", "Размер плиток", "Настройка масштаба всех карточек в полке Dock (Компактный, Стандартный tvOS, Крупный).");
 
+        // 4. Часы
         FrameLayout itemClock = findViewById(R.id.setting_item_clock);
         TextView tvClock = findViewById(R.id.tv_setting_clock_title);
         itemClock.setOnClickListener(v -> showClockPickerTvos());
         setupSettingFocus(itemClock, tvClock, tvClockVal, "⏱", "Часы и дата", "Переключение между 24-часовым форматом и 12-часовым режимом с отображением даты и дня недели.");
 
+        // 5. Заставка
         FrameLayout itemSaver = findViewById(R.id.setting_item_screensaver);
         TextView tvSaver = findViewById(R.id.tv_setting_saver_title);
         itemSaver.setOnClickListener(v -> showScreensaverPickerTvos());
         setupSettingFocus(itemSaver, tvSaver, tvSaverVal, "🕹", "Заставка Aerial", "Таймер автоперехода в режим заставки: скрывает док и оставляет чистый кинематографичный вид с часами.");
 
+        // 6. Автозапуск
         FrameLayout itemAutostart = findViewById(R.id.setting_item_autostart);
         TextView tvAutostart = findViewById(R.id.tv_setting_autostart_title);
         itemAutostart.setOnClickListener(v -> showAutostartPickerTvos());
         setupSettingFocus(itemAutostart, tvAutostart, tvAutostartVal, "🚀", "Быстрый запуск", "Приложение по умолчанию, которое открывается автоматически при включении телевизора.");
 
+        // 7. Сброс
         FrameLayout itemReset = findViewById(R.id.setting_item_reset_order);
         TextView tvReset = findViewById(R.id.tv_setting_reset_title);
         itemReset.setOnClickListener(v -> {
@@ -355,6 +366,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemReset, tvReset, null, "↺", "Сбросить порядок", "Возвращает исходный порядок плиток по умолчанию на домашнем экране.");
 
+        // 8. Восстановить скрытые
         FrameLayout itemRestore = findViewById(R.id.setting_item_restore_hidden);
         TextView tvRestore = findViewById(R.id.tv_setting_restore_title);
         itemRestore.setOnClickListener(v -> {
@@ -364,6 +376,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         });
         setupSettingFocus(itemRestore, tvRestore, null, "👁", "Скрытые программы", "Восстанавливает видимость всех ранее скрытых программ в каталоге и главном меню.");
 
+        // 9. Параметры Android TV
         FrameLayout itemSys = findViewById(R.id.setting_item_system);
         TextView tvSys = findViewById(R.id.tv_setting_sys_title);
         TextView arrSys = findViewById(R.id.tv_setting_sys_arrow);
@@ -540,37 +553,44 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return super.onKeyDown(keyCode, event);
     }
 
+    // Скрываем только передний план домашнего экрана, сохраняя видимость постера и эмбиент-подсветки
+    private void setHomeForegroundVisible(boolean visible) {
+        int visibility = visible ? View.VISIBLE : View.GONE;
+        findViewById(R.id.top_bar).setVisibility(visibility);
+        findViewById(R.id.dock_layout_wrapper).setVisibility(visibility);
+    }
+
     private void openDrawer() {
-        homeContentContainer.setVisibility(View.GONE);
+        setHomeForegroundVisible(false);
 
         appDrawerOverlay.setVisibility(View.VISIBLE);
         appDrawerOverlay.setAlpha(0f);
-        appDrawerOverlay.animate().alpha(1f).setDuration(200).start();
+        appDrawerOverlay.animate().alpha(1f).setDuration(220).start();
         drawerRecycler.requestFocus();
     }
 
     private void closeDrawer() {
         appDrawerOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
             appDrawerOverlay.setVisibility(View.GONE);
-            homeContentContainer.setVisibility(View.VISIBLE);
+            setHomeForegroundVisible(true);
             dockRecycler.requestFocus();
         }).start();
     }
 
     private void openSettings() {
-        homeContentContainer.setVisibility(View.GONE);
+        setHomeForegroundVisible(false);
 
         applyPreferencesUi();
         settingsOverlay.setVisibility(View.VISIBLE);
         settingsOverlay.setAlpha(0f);
-        settingsOverlay.animate().alpha(1f).setDuration(200).start();
+        settingsOverlay.animate().alpha(1f).setDuration(220).start();
         findViewById(R.id.setting_item_tiles).requestFocus();
     }
 
     private void closeSettings() {
         settingsOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
             settingsOverlay.setVisibility(View.GONE);
-            homeContentContainer.setVisibility(View.VISIBLE);
+            setHomeForegroundVisible(true);
             dockRecycler.requestFocus();
         }).start();
     }
@@ -728,6 +748,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         prefs.edit().putString("pinned_order", arr.toString()).apply();
     }
 
+    // Извлечение доминантного цвета для подсветки любого приложения
     private int extractDominantColor(Drawable drawable) {
         if (drawable == null) return 0xFF353545;
         try {
@@ -819,6 +840,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         return R.drawable.bg_poster_studio;
     }
 
+    // --- 1. АДАПТЕР ГЛАВНОГО DOCK ---
     private class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private int getCardWidth() {
@@ -941,13 +963,14 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    // --- 2. АДАПТЕР КАТАЛОГА ВСЕХ ПРИЛОЖЕНИЙ (ПРОПОРЦИОНАЛЬНЫЕ КАРТОЧКИ 5 В РЯД С ОТСТУПАМИ) ---
     private class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(140), dpToPx(84));
-            lp.setMargins(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(dpToPx(156), dpToPx(92));
+            lp.setMargins(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
             card.setLayoutParams(lp);
             card.setFocusable(true);
             card.setClickable(true);
@@ -962,13 +985,13 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(42), dpToPx(42), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(44), dpToPx(44), Gravity.CENTER));
 
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
-            tv.setTextSize(11);
+            tv.setTextSize(12);
             tv.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-            tv.setPadding(dpToPx(6), 0, dpToPx(6), dpToPx(6));
+            tv.setPadding(dpToPx(8), 0, dpToPx(8), dpToPx(8));
             card.addView(tv, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             return new RecyclerView.ViewHolder(card) {};
@@ -996,6 +1019,9 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
                     focusBg.setCornerRadius(dpToPx(18));
                     focusBg.setStroke(dpToPx(3), Color.WHITE);
                     v.setBackground(focusBg);
+
+                    heroBanner.setImageResource(item.bannerRes);
+                    animateAmbientGlow(item.glowColor);
                 } else {
                     animateScale(v, 1.0f, 1.0f, 0f);
                     v.setBackground(normalBg);
@@ -1023,6 +1049,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    // --- 3. АДАПТЕР УПРАВЛЕНИЯ ПЛИТКАМИ ---
     private class TilesManagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         @NonNull
         @Override
@@ -1149,6 +1176,7 @@ public class MainActivity extends AppCompatActivity implements PackageReceiver.P
         }
     }
 
+    // --- 4. АДАПТЕР ОКНА ВЫБОРА TVOS PICKER ---
     private class PickerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final List<PickerOption> options;
         private final OnOptionSelectedListener listener;

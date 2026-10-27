@@ -158,7 +158,7 @@
         android:id="@+id/app_drawer_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FA08080C"
+        android:background="#B806070B"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -177,7 +177,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="20dp">
+                android:layout_marginBottom="16dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -185,7 +185,7 @@
                     android:layout_weight="1"
                     android:text="Все приложения"
                     android:textColor="#FFFFFF"
-                    android:textSize="30sp"
+                    android:textSize="28sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -193,7 +193,7 @@
                     android:layout_height="wrap_content"
                     android:text="[Назад] для выхода"
                     android:textColor="#88FFFFFF"
-                    android:textSize="15sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -209,7 +209,7 @@
         android:id="@+id/settings_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FA08080C"
+        android:background="#C406070B"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
@@ -565,7 +565,7 @@
         android:id="@+id/tiles_manager_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FA08080C"
+        android:background="#D406070B"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true">
