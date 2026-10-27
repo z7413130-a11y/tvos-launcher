@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.TvOS" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#050508</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
